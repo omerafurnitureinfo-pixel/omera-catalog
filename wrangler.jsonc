@@ -1,13 +1,14 @@
 {
   "name": "omera-catalog-editor",
   "main": "./worker/index.ts",
+  "account_id": "376df67bf52899daad75aaf5f8e14299",
   "compatibility_date": "2025-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "site-creator-d1",
-      "database_id": "00000000-0000-4000-8000-000000000000"
+      "database_name": "omera-catalog-db",
+      "database_id": "dc14b997-16b2-42cc-a035-d3e56b3dd4dc"
     }
   ]
 }
