@@ -1,0 +1,11 @@
+node_modules/
+.wrangler/
+.sites-runtime/
+dist/
+.next/
+.output/
+*.log
+.DS_Store
+.env
+.env.local
+*.tsbuildinfo
