@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, BadgeCheck, ChevronLeft, Copy, Download, Eye, FileJson,
-  FilePlus2, GripVertical, Import, LayoutTemplate, LogOut, Menu, Palette, Pencil, Plus, Printer, Redo2,
+  FilePlus2, GripVertical, Home, Import, LayoutTemplate, LogOut, Menu, Palette, Pencil, Plus, Printer, Redo2,
   Save, Search, Settings, ShieldCheck, Sparkles, Trash2, Undo2, Upload, UserPlus, Users, X, ZoomIn, ZoomOut
 } from 'lucide-react';
 import {
@@ -12,10 +12,10 @@ import {
 } from './catalog-types';
 import { CatalogPageView, Field, ImagePlaceholder } from './catalog-view';
 import { NotificationsBell } from './notifications';
-import { PROJECT_STATUSES, ProjectStatus, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
+import { PROJECT_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
+import { Dashboard } from './dashboard';
 
 type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' };
-type ProjectSummary = { id: string; name: string; clientName: string; clientNumber: number | null; status: ProjectStatus; statusUpdatedAt: string | null; startDate: string | null; dueDate: string | null; completionPercent: number; completionUpdatedAt: string | null; createdAt: string; updatedAt: string };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
 
 async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> {
@@ -41,6 +41,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const [status, setStatus] = useState<ProjectSummary | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [allProjects, setAllProjects] = useState<ProjectSummary[]>([]);
+  const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
 
   const [selectedId, setSelectedId] = useState('');
   const [zoom, setZoom] = useState(72);
@@ -82,21 +83,22 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     const id = uid();
     await api('/api/projects', { method: 'POST', body: JSON.stringify({ id, name, data }) });
     await openProjectById(id);
+    setView('editor');
     saveMessage('تم إنشاء مشروع جديد');
   };
 
   const refreshProjectsList = () => { api<{ projects: ProjectSummary[] }>('/api/projects').then(d => setAllProjects(d.projects)).catch(() => undefined); };
+
+  const openProjectFromDashboard = async (id: string) => {
+    await openProjectById(id);
+    setView('editor');
+  };
 
   useEffect(() => {
     (async () => {
       try {
         const list = await api<{ projects: ProjectSummary[] }>('/api/projects');
         setAllProjects(list.projects);
-        if (list.projects.length > 0) {
-          await openProjectById(list.projects[0].id);
-        } else {
-          await createNewProject();
-        }
       } catch {
         saveMessage('تعذر تحميل المشاريع من الخادم');
       } finally {
@@ -190,11 +192,28 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const updateSample = (id: string, key: keyof MaterialSample, value: string) => updatePage(page => ({ ...page, samples: page.samples.map(sample => sample.id === id ? { ...sample, [key]: value } : sample) }));
   const deleteSample = (id: string) => updatePage(page => ({ ...page, samples: page.samples.filter(sample => sample.id !== id) }));
 
+  if (view === 'dashboard') {
+    return <>
+      <Dashboard
+        user={user}
+        projects={allProjects}
+        loading={!hydrated}
+        onOpenProject={id => void openProjectFromDashboard(id)}
+        onCreateProject={() => void createNewProject()}
+        onLogout={logout}
+        onShowAll={() => setShowProjects(true)}
+      />
+      {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { setShowProjects(false); await openProjectFromDashboard(id); }} />}
+      {toast && <div className="toast"><span className="status-dot" /> {toast}</div>}
+    </>;
+  }
+
   if (!selected) return <div className="auth-shell" dir="rtl"><p className="auth-hint">جارٍ تحميل المشروع...</p></div>;
 
   return <div className="app-shell" dir="rtl">
     <header className="topbar no-print">
       <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>محرّر <em>أوميرا</em></strong><span>كتالوجات الأثاث والمواصفات</span></div></div>
+      <IconButton label="لوحة التحكم" onClick={() => { refreshProjectsList(); setView('dashboard'); }}><Home size={17} /></IconButton>
       <div className="project-name"><Pencil size={14} /><input value={projectName} onChange={e => setProjectName(e.target.value)} /><span className="saved"><span className="status-dot" /> محفوظ تلقائيًا</span></div>
       <div className="client-name-field">
         <span>العميل {status?.clientNumber ? `#${status.clientNumber}` : ''}</span>

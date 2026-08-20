@@ -151,3 +151,27 @@
 .client-name-field span{font-size:10px;white-space:nowrap}
 .client-name-field input{border:0;background:transparent;color:#f4f1ea;width:100%;font-size:12px}
 .quick-approve-btn{height:26px;padding:0 10px;font-size:10px;flex-shrink:0}
+
+/* ============ لوحة التحكم الرئيسية ============ */
+.dashboard-shell{background:#e9e7e2;min-height:100vh}
+.dashboard-body{max-width:1180px;margin:0 auto;padding:28px 24px 60px;display:flex;flex-direction:column;gap:26px}
+.section-label-title{display:flex;align-items:center;gap:5px}
+.dashboard-feed{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:16px 18px}
+.factory-feed-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.factory-feed-item{flex:0 0 auto;min-width:220px;max-width:260px;text-align:right;background:#f3efe9;border:1px solid #e2dbd2;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.factory-feed-item:hover{border-color:#bda27f}
+.factory-feed-item strong{font-size:12px;color:#3a3733}
+.factory-feed-item span{font-size:10.5px;color:#6f7a5a}
+.factory-feed-item small{font-size:9px;color:#a49a8c;font-family:Inter,sans-serif}
+.dashboard-groups{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.dashboard-group{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:14px 16px;min-width:0}
+.dash-count{background:#eee8dd;color:#8e775a;border-radius:20px;padding:1px 8px;font-size:9px;margin-right:6px}
+.dash-project-list{display:flex;flex-direction:column;gap:7px}
+.dash-project-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:right;background:#fff;border:1px solid #e6dfd5;border-radius:5px;padding:9px 11px;cursor:pointer}
+.dash-project-row:hover{border-color:#bda27f}
+.dash-project-row-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dash-project-row-main strong{font-size:12px;color:#3a3733;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-project-row-main span{font-size:9.5px;color:#8e877d}
+.dashboard-recent{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:16px 18px}
+.dashboard-recent .section-label button{background:#f1eee9;border:1px solid #e4ddd4;border-radius:20px;padding:3px 10px}
+@media(max-width:900px){.dashboard-groups{grid-template-columns:1fr}}

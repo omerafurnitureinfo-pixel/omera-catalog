@@ -5,14 +5,9 @@ import { ArrowRight, Factory, LogOut, Printer, Sparkles } from "lucide-react";
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
-import { ProjectStatus, STATUS_LABELS, dueDateInfo } from "../lib/project-utils";
+import { ProjectSummary, STATUS_LABELS, dueDateInfo } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
-type ProjectSummary = {
-  id: string; name: string; clientName: string; clientNumber: number | null; status: ProjectStatus; statusUpdatedAt: string | null;
-  startDate: string | null; dueDate: string | null; completionPercent: number; completionUpdatedAt: string | null;
-  createdAt: string; updatedAt: string;
-};
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
 type FullProject = ProjectSummary & { data: { settings: Record<string, string | boolean>; pages: CatalogPage[] } };
 
