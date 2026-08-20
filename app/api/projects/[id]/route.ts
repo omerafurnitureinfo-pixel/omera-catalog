@@ -23,6 +23,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         id: row.id,
         name: row.name,
         clientName: row.clientName,
+        clientNumber: row.clientNumber,
         data: JSON.parse(row.data),
         status: row.status,
         statusUpdatedAt: row.statusUpdatedAt,

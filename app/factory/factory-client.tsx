@@ -9,7 +9,7 @@ import { ProjectStatus, STATUS_LABELS, dueDateInfo } from "../lib/project-utils"
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
 type ProjectSummary = {
-  id: string; name: string; clientName: string; status: ProjectStatus; statusUpdatedAt: string | null;
+  id: string; name: string; clientName: string; clientNumber: number | null; status: ProjectStatus; statusUpdatedAt: string | null;
   startDate: string | null; dueDate: string | null; completionPercent: number; completionUpdatedAt: string | null;
   createdAt: string; updatedAt: string;
 };
@@ -100,7 +100,7 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                   <div className="factory-card-head">
                     <strong>{p.name}</strong>
                     <span className={`status-pill status-${p.status}`}>{STATUS_LABELS[p.status]}</span>
-                    {p.clientName && <span className="factory-client">العميل: {p.clientName}</span>}
+                    {p.clientName && <span className="factory-client">العميل: {p.clientName}{p.clientNumber ? ` #${p.clientNumber}` : ''}</span>}
                   </div>
                   <div className="factory-dates">
                     <div><span>تاريخ البداية</span><strong>{p.startDate ? new Date(p.startDate).toLocaleDateString("ar-SA") : "—"}</strong></div>

@@ -33,6 +33,7 @@ export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   name: text("name").notNull().default("مشروع جديد"),
   clientName: text("client_name").notNull().default(""),
+  clientNumber: integer("client_number"), // رقم تسلسلي يبدأ من 11001، يُحسب عند إنشاء المشروع
   data: text("data").notNull(), // JSON: { settings, pages }
   status: text("status").notNull().default("draft"),
   statusUpdatedAt: text("status_updated_at"),

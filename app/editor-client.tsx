@@ -15,7 +15,7 @@ import { NotificationsBell } from './notifications';
 import { PROJECT_STATUSES, ProjectStatus, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
 
 type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' };
-type ProjectSummary = { id: string; name: string; clientName: string; status: ProjectStatus; statusUpdatedAt: string | null; startDate: string | null; dueDate: string | null; completionPercent: number; completionUpdatedAt: string | null; createdAt: string; updatedAt: string };
+type ProjectSummary = { id: string; name: string; clientName: string; clientNumber: number | null; status: ProjectStatus; statusUpdatedAt: string | null; startDate: string | null; dueDate: string | null; completionPercent: number; completionUpdatedAt: string | null; createdAt: string; updatedAt: string };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
 
 async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> {
@@ -117,6 +117,20 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     return () => window.clearTimeout(timer);
   }, [pages, settings, projectName, projectId, hydrated]);
 
+  const [saving, setSaving] = useState(false);
+  const saveNow = async () => {
+    if (!projectId) return;
+    setSaving(true);
+    try {
+      await api(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ name: projectName, data: { settings, pages } }) });
+      saveMessage('تم حفظ المشروع');
+    } catch {
+      saveMessage('تعذر حفظ المشروع، تحقق من الاتصال');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /* ---------------- أدوات التحرير (نفس منطق النسخة السابقة) ---------------- */
 
   const commit = (updater: (current: { pages: CatalogPage[] }) => { pages: CatalogPage[] }) => {
@@ -182,10 +196,19 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     <header className="topbar no-print">
       <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>محرّر <em>أوميرا</em></strong><span>كتالوجات الأثاث والمواصفات</span></div></div>
       <div className="project-name"><Pencil size={14} /><input value={projectName} onChange={e => setProjectName(e.target.value)} /><span className="saved"><span className="status-dot" /> محفوظ تلقائيًا</span></div>
+      <div className="client-name-field">
+        <span>العميل {status?.clientNumber ? `#${status.clientNumber}` : ''}</span>
+        <input
+          placeholder="اسم العميل"
+          value={pages.find(page => page.kind === 'cover')?.fields.client ?? ''}
+          onChange={e => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: e.target.value } }), pages, commit)}
+        />
+      </div>
       <div className="top-actions">
         <IconButton label="مشروع جديد" onClick={createNew}><FilePlus2 size={17} /></IconButton>
         <IconButton label="المشاريع الأخيرة" onClick={() => setShowProjects(true)}><LayoutTemplate size={17} /></IconButton>
         <span className="separator" />
+        <button className="outline-button" disabled={saving} onClick={saveNow}><Save size={16} /> {saving ? 'جارٍ الحفظ...' : 'حفظ المشروع'}</button>
         <IconButton label="تراجع" onClick={undo}><Undo2 size={17} /></IconButton>
         <IconButton label="إعادة" onClick={redo}><Redo2 size={17} /></IconButton>
         <span className="separator" />
@@ -401,11 +424,22 @@ function TemplateModal({ onPick, onClose }: { onPick: (kind: PageKind) => void; 
 }
 
 function ProjectsModal({ currentId, onClose, onOpen }: { currentId: string; onClose: () => void; onOpen: (id: string) => void }) {
-  const [items, setItems] = useState<{ id: string; name: string; updatedAt: string; clientName: string; status: ProjectStatus }[]>([]);
+  const [items, setItems] = useState<{ id: string; name: string; updatedAt: string; clientName: string; clientNumber: number | null; status: ProjectStatus }[]>([]);
   const [query, setQuery] = useState('');
+  const [error, setError] = useState('');
   useEffect(() => { api<{ projects: typeof items }>('/api/projects').then(d => setItems(d.projects)).catch(() => undefined); }, []);
   const filtered = items.filter(item => item.name.toLowerCase().includes(query.toLowerCase()) || (item.clientName || '').toLowerCase().includes(query.toLowerCase()));
-  return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal projects-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">مساحة العمل</span><h2>المشاريع الأخيرة</h2></div><button onClick={onClose}><X size={19} /></button></div><div className="project-search"><Search size={16} /><input placeholder="ابحث باسم المشروع أو العميل..." value={query} onChange={e => setQuery(e.target.value)} />{query && <button onClick={() => setQuery('')}><X size={14} /></button>}</div><div className="project-list">{filtered.map((item, index) => <button className={`project-card ${item.id === currentId ? 'current' : ''}`} key={item.id} onClick={() => onOpen(item.id)}><div className="project-card-number">{String(index + 1).padStart(2, '0')}</div><div className="project-card-icon"><LayoutTemplate size={19} /></div><div><strong>{item.name}</strong><span>{item.clientName ? `${item.clientName} · ` : ''}{new Date(item.updatedAt).toLocaleDateString('ar-SA')} · {STATUS_LABELS[item.status]}</span></div><ChevronLeft size={16} /></button>)}{filtered.length === 0 && <div className="empty-state">لا توجد مشاريع مطابقة لبحثك.</div>}</div></div></div>;
+  const quickApprove = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setError('');
+    try {
+      await api(`/api/projects/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'approved' }) });
+      setItems(list => list.map(item => item.id === id ? { ...item, status: 'approved' } : item));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'تعذر الاعتماد');
+    }
+  };
+  return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal projects-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">مساحة العمل</span><h2>المشاريع الأخيرة</h2></div><button onClick={onClose}><X size={19} /></button></div><div className="project-search"><Search size={16} /><input placeholder="ابحث باسم المشروع أو العميل..." value={query} onChange={e => setQuery(e.target.value)} />{query && <button onClick={() => setQuery('')}><X size={14} /></button>}</div>{error && <p className="auth-error" style={{ margin: '0 25px' }}>{error}</p>}<div className="project-list">{filtered.map((item, index) => <div role="button" tabIndex={0} className={`project-card ${item.id === currentId ? 'current' : ''}`} key={item.id} onClick={() => onOpen(item.id)} onKeyDown={e => e.key === 'Enter' && onOpen(item.id)}><div className="project-card-number">{String(index + 1).padStart(2, '0')}</div><div className="project-card-icon"><LayoutTemplate size={19} /></div><div><strong>{item.name}</strong><span>{item.clientName ? `${item.clientName}${item.clientNumber ? ` #${item.clientNumber}` : ''} · ` : ''}{new Date(item.updatedAt).toLocaleDateString('ar-SA')} · {STATUS_LABELS[item.status]}</span></div>{(item.status === 'draft' || item.status === 'review') && <button className="outline-button quick-approve-btn" onClick={e => quickApprove(item.id, e)}><BadgeCheck size={14} /> اعتماد</button>}<ChevronLeft size={16} /></div>)}{filtered.length === 0 && <div className="empty-state">لا توجد مشاريع مطابقة لبحثك.</div>}</div></div></div>;
 }
 
 function PageInspector({ page, updateField, updatePage, uploadImage, addRow, deleteRow, addSample, deleteSample, updateSample }: { page: CatalogPage; updateField: (key: string, value: string) => void; updatePage: (updater: (page: CatalogPage) => CatalogPage) => void; uploadImage: (file: File, callback: (data: string) => void) => void; addRow: () => void; deleteRow: (id: string) => void; addSample: () => void; deleteSample: (id: string) => void; updateSample: (id: string, key: keyof MaterialSample, value: string) => void }) {

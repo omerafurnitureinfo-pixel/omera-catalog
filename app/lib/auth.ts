@@ -66,9 +66,11 @@ export async function destroySession(token: string): Promise<void> {
   await db.delete(sessions).where(eq(sessions.id, token));
 }
 
-export function sessionCookieHeader(token: string, expiresAt: string): string {
-  const expires = new Date(expiresAt).toUTCString();
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Expires=${expires}`;
+// الكوكيز بلا Expires عمدًا (كوكيز جلسة متصفح): تنتهي تلقائيًا عند إغلاق
+// المتصفح فيُطلب تسجيل الدخول من جديد. صلاحية الجلسة في القاعدة (expiresAt)
+// تبقى سقفًا أقصى من جهة الخادم فقط.
+export function sessionCookieHeader(token: string, _expiresAt: string): string {
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax`;
 }
 
 export function clearSessionCookieHeader(): string {

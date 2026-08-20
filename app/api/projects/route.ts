@@ -1,4 +1,4 @@
-import { desc, inArray } from "drizzle-orm";
+import { desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { projects } from "../../../db/schema";
 import { logActivity } from "../../lib/activity";
@@ -7,12 +7,14 @@ import { toRouteErrorMessage } from "../../lib/db-error";
 import { extractClientName } from "../../lib/project-utils";
 
 const FACTORY_VISIBLE_DB_STATUSES = ["approved", "in_progress", "completed", "delivered"] as const;
+const FIRST_CLIENT_NUMBER = 11001;
 
 function summarize(row: typeof projects.$inferSelect) {
   return {
     id: row.id,
     name: row.name,
     clientName: row.clientName,
+    clientNumber: row.clientNumber,
     status: row.status,
     statusUpdatedAt: row.statusUpdatedAt,
     startDate: row.startDate,
@@ -54,12 +56,15 @@ export async function POST(request: Request) {
     }
     const db = getDb();
     const now = new Date().toISOString();
+    const [{ maxNumber }] = await db.select({ maxNumber: sql<number | null>`max(${projects.clientNumber})` }).from(projects);
+    const nextClientNumber = (maxNumber ?? FIRST_CLIENT_NUMBER - 1) + 1;
     const [created] = await db
       .insert(projects)
       .values({
         id: payload.id,
         name: payload.name,
         clientName: extractClientName(payload.data),
+        clientNumber: nextClientNumber,
         data: JSON.stringify(payload.data),
         createdBy: me.id,
         createdAt: now,
