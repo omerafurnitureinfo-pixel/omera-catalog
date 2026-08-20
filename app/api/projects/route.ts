@@ -66,6 +66,7 @@ export async function POST(request: Request) {
         clientName: extractClientName(payload.data),
         clientNumber: nextClientNumber,
         data: JSON.stringify(payload.data),
+        status: "review",
         createdBy: me.id,
         createdAt: now,
         updatedAt: now,

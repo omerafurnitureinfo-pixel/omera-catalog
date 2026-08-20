@@ -15,6 +15,13 @@
       "when": 1787229346939,
       "tag": "0001_dry_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787231491892,
+      "tag": "0002_tired_romulus",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ import {
 } from './catalog-types';
 import { CatalogPageView, Field, ImagePlaceholder } from './catalog-view';
 import { NotificationsBell } from './notifications';
-import { PROJECT_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
+import { STEPPER_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
 import { Dashboard } from './dashboard';
 
 type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' };
@@ -355,7 +355,7 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
       <Field label="اسم العميل (مرتبط بصفحة الغلاف)" value={clientName} onChange={setClientName} />
       <p className="section-label">مرحلة المشروع</p>
       <div className="status-stepper">
-        {PROJECT_STATUSES.map((value, index) => <button key={value} type="button" className={`status-step ${stage === value ? 'active' : ''} ${PROJECT_STATUSES.indexOf(stage) >= index ? 'passed' : ''}`} onClick={() => setStage(value)}>
+        {STEPPER_STATUSES.map((value, index) => <button key={value} type="button" className={`status-step ${stage === value ? 'active' : ''} ${STEPPER_STATUSES.indexOf(stage as typeof STEPPER_STATUSES[number]) >= index ? 'passed' : ''}`} onClick={() => setStage(value)}>
           <span className="status-step-dot">{index + 1}</span><span>{STATUS_LABELS[value]}</span>
         </button>)}
       </div>

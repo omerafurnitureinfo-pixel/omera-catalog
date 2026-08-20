@@ -18,7 +18,6 @@ export const productRows = (): ProductRow[] => [
   { id: uid(), label: 'الوصف', value: 'قطعة أثاث مختارة بعناية', visible: true },
   { id: uid(), label: 'الأبعاد', value: 'W: 000 cm  |  H: 000 cm  |  D: 000 cm', visible: true },
   { id: uid(), label: 'الخامات', value: 'السطح: ______   |   القاعدة: ______   |   الظهر: ______', visible: true },
-  { id: uid(), label: 'الكمية', value: '1', visible: true },
   { id: uid(), label: 'المورد والمجموعة', value: '', visible: true },
   { id: uid(), label: 'الكود والتشطيب', value: '', visible: true },
   { id: uid(), label: 'بريم', value: '', visible: true },

@@ -14,8 +14,14 @@ export function extractClientName(data: unknown): string {
 // ملف مشترك بين الواجهة (editor/factory) والـ API، لذا يبقى بلا أي استيراد
 // خاص بالخادم (لا getDb هنا) حتى يصلح استخدامه داخل مكوّنات "use client".
 
+// "draft" أُبقي هنا فقط للتوافق مع مشاريع قديمة أُنشئت قبل حذف هذه المرحلة
+// من الواجهة — لم تعد تُعرض كخيار في شريط المراحل (انظر STEPPER_STATUSES)
+// ولا تُستخدم كحالة ابتدائية لمشروع جديد (المشاريع الجديدة تبدأ من "review").
 export const PROJECT_STATUSES = ["draft", "review", "approved", "in_progress", "completed", "delivered"] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+// المراحل المعروضة فعليًا في شريط "مرحلة المشروع" بالواجهة.
+export const STEPPER_STATUSES = ["review", "approved", "in_progress", "completed", "delivered"] as const;
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: "مسودة",

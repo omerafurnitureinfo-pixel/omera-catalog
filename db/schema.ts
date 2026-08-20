@@ -26,16 +26,18 @@ export const sessions = sqliteTable("sessions", {
 // حفاظًا على نفس بنية البيانات المستخدمة في المحرر، بينما تُستخرج بيانات
 // الاعتماد والتنفيذ إلى أعمدة مستقلة لتسهيل الفلترة والاستعلام لشاشة المصنع.
 //
-// status يحل محل الحقل الثنائي القديم (approved) بست مراحل واضحة:
-// draft -> review -> approved -> in_progress -> completed -> delivered
-// (راجع app/lib/project-utils.ts لقائمة القيم المسموحة والتسميات العربية).
+// status يحل محل الحقل الثنائي القديم (approved) بمراحل واضحة:
+// review -> approved -> in_progress -> completed -> delivered
+// ("draft" أُبقيت في القيم المسموحة للتوافق مع مشاريع قديمة فقط، ولم تعد
+// تُستخدم كحالة ابتدائية ولا تظهر في شريط المراحل — راجع
+// app/lib/project-utils.ts لقائمة القيم والتسميات العربية).
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   name: text("name").notNull().default("مشروع جديد"),
   clientName: text("client_name").notNull().default(""),
   clientNumber: integer("client_number"), // رقم تسلسلي يبدأ من 11001، يُحسب عند إنشاء المشروع
   data: text("data").notNull(), // JSON: { settings, pages }
-  status: text("status").notNull().default("draft"),
+  status: text("status").notNull().default("review"),
   statusUpdatedAt: text("status_updated_at"),
   startDate: text("start_date"),
   dueDate: text("due_date"),
