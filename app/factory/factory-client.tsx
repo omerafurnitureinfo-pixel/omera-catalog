@@ -41,6 +41,12 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
   };
   useEffect(load, []);
 
+  useEffect(() => {
+    const onHide = () => { navigator.sendBeacon("/api/auth/logout"); };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, []);
+
   const openDetails = async (id: string) => {
     try {
       const data = await api<{ project: FullProject }>(`/api/projects/${id}`);
@@ -130,7 +136,7 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
           <div className="canvas-scroll factory-pages-scroll">
             {openProject.data.pages.filter((p) => !p.hidden).map((p, index) => (
               <div className="factory-page-wrapper" key={p.id}>
-                <CatalogPageView page={p} pageNumber={index + 1} settings={openProject.data.settings} readOnly />
+                <CatalogPageView page={p} pageNumber={index + 1} settings={openProject.data.settings} clientNumber={openProject.clientNumber} readOnly />
               </div>
             ))}
           </div>

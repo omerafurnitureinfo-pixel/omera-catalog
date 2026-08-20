@@ -108,6 +108,14 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // تسجيل خروج تلقائي عند إغلاق الصفحة أو التبويب (وليس فقط عند إغلاق
+  // المتصفح كاملًا). sendBeacon يضمن إرسال الطلب حتى مع إغلاق الصفحة فورًا.
+  useEffect(() => {
+    const onHide = () => { navigator.sendBeacon('/api/auth/logout'); };
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
+  }, []);
+
   /* ---------------- حفظ تلقائي على الخادم ---------------- */
 
   useEffect(() => {
@@ -120,12 +128,19 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   }, [pages, settings, projectName, projectId, hydrated]);
 
   const [saving, setSaving] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const saveNow = async () => {
     if (!projectId) return;
+    const clientName = pages.find(page => page.kind === 'cover')?.fields.client ?? '';
+    const hasRealClientName = clientName.trim() && clientName.trim() !== 'اسم العميل';
+    if (!hasRealClientName) {
+      clientNameRef.current?.focus();
+      saveMessage('الرجاء إدخال اسم العميل قبل الحفظ');
+    }
     setSaving(true);
     try {
       await api(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ name: projectName, data: { settings, pages } }) });
-      saveMessage('تم حفظ المشروع');
+      if (hasRealClientName) saveMessage('تم حفظ المشروع');
     } catch {
       saveMessage('تعذر حفظ المشروع، تحقق من الاتصال');
     } finally {
@@ -218,6 +233,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
       <div className="client-name-field">
         <span>العميل {status?.clientNumber ? `#${status.clientNumber}` : ''}</span>
         <input
+          ref={clientNameRef}
           placeholder="اسم العميل"
           value={pages.find(page => page.kind === 'cover')?.fields.client ?? ''}
           onChange={e => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: e.target.value } }), pages, commit)}
@@ -256,7 +272,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
       <main className="canvas-area">
         <div className="canvas-toolbar no-print"><div className="breadcrumb">المشروع / <strong>{selected.title}</strong></div><div className="canvas-actions"><button onClick={() => setZoom(value => Math.max(42, value - 8))}><ZoomOut size={15} /></button><span>{zoom}%</span><button onClick={() => setZoom(value => Math.min(120, value + 8))}><ZoomIn size={15} /></button><span className="toolbar-separator" /><IconButton label="نسخ الصفحة" onClick={duplicatePage}><Copy size={16} /></IconButton><IconButton label="حذف الصفحة" onClick={deletePage}><Trash2 size={16} /></IconButton></div></div>
         <div className="canvas-scroll"><div className="page-stage" style={{ transform: `scale(${zoom / 72})` }}>
-          <CatalogPageView page={selected} pageNumber={pages.findIndex(page => page.id === selected.id) + 1} settings={settings}
+          <CatalogPageView page={selected} pageNumber={pages.findIndex(page => page.id === selected.id) + 1} settings={settings} clientNumber={status?.clientNumber}
             callbacks={{
               onField: updateField,
               onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : ({ ...page, image: key === 'page' ? data : page.image, fields: { ...page.fields, [key]: data } }))),
@@ -279,8 +295,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { await openProjectById(id); setShowProjects(false); saveMessage('تم فتح المشروع'); }} />}
     {showApproval && status && <StatusModal projectId={projectId} status={status} pages={pages} onClose={() => setShowApproval(false)} onClientNameChange={(value) => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: value } }), pages, commit)} onUpdated={(next) => { setStatus(next); refreshProjectsList(); }} />}
     {showAccounts && <AccountsModal onClose={() => setShowAccounts(false)} />}
-    {showPrint && <div className="print-only-stage">{pages.filter(page => !page.hidden).map((page, index) => <CatalogPageView key={page.id} page={page} pageNumber={index + 1} settings={settings} readOnly />)}</div>}
-    <div className="print-all-pages no-print" aria-hidden style={{ display: 'none' }}>{pages.filter(page => !page.hidden).map((page, index) => <div key={page.id} className="print-page-wrapper"><CatalogPageView page={page} pageNumber={index + 1} settings={settings} readOnly /></div>)}</div>
+    {showPrint && <div className="print-only-stage">{pages.filter(page => !page.hidden).map((page, index) => <CatalogPageView key={page.id} page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly />)}</div>}
+    <div className="print-all-pages no-print" aria-hidden style={{ display: 'none' }}>{pages.filter(page => !page.hidden).map((page, index) => <div key={page.id} className="print-page-wrapper"><CatalogPageView page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly /></div>)}</div>
     <input ref={importRef} type="file" accept="application/json" hidden onChange={importProject} />
     {toast && <div className="toast"><span className="status-dot" /> {toast}</div>}
   </div>;
