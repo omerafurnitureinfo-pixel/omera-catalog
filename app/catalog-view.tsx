@@ -79,7 +79,12 @@ function ProductPage({ page, title, cb, readOnly }: { page: CatalogPage; title: 
   </div>
   {show('image') && <div className="product-hero"><ImagePlaceholder image={page.image} label="صورة المنتج الرئيسية" readOnly={readOnly} onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} /></div>}
   {meta.length > 0 && <div className="spec-meta" style={{ gridTemplateColumns: `repeat(${meta.length}, 1fr)` }}>{meta.map(([key, label]) => <span key={key}>{page.fields[key] || '—'} <b>{label}</b></span>)}</div>}
-  {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map((row, index) => <div className="spec-row" key={row.id}><div className="spec-label-cell"><input className="spec-label" readOnly={readOnly} value={row.label} onChange={e => cb.onUpdateRow(row.id, 'label', e.target.value)} />{index === 0 && <span className="spec-title-tag">{title}</span>}</div><textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} /></div>)}</div>}
+  {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map((row, index) => <div className="spec-row" key={row.id}>
+    <div className="spec-label-cell"><input className="spec-label" readOnly={readOnly} value={row.label} onChange={e => cb.onUpdateRow(row.id, 'label', e.target.value)} /></div>
+    {index === 0
+      ? <div className="spec-value-cell"><span className="spec-title-tag">{title}</span><textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} /></div>
+      : <textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} />}
+  </div>)}</div>}
   {show('notes') && <div className="approval-note"><span>ملاحظات الاعتماد</span><p>{page.fields.notes || '—'}</p></div>}
   </div>;
 }
