@@ -80,6 +80,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
 
   const createNewProject = async (name = 'كتالوج جديد') => {
     const data = newProjectData();
+    const cover = data.pages.find(page => page.kind === 'cover');
+    if (cover && user.displayName) cover.fields.designer = user.displayName;
     const id = uid();
     await api('/api/projects', { method: 'POST', body: JSON.stringify({ id, name, data }) });
     await openProjectById(id);
@@ -496,6 +498,8 @@ function PageInspector({ page, updateField, updatePage, uploadImage, addRow, del
   if (page.kind === 'product') return <div className="inspector-fields">
     {editableField('section', 'القسم أو الفراغ')}{editableField('product', 'اسم القطعة')}
     <div className="two-fields">{editableField('quantity', 'الكمية')}{editableField('catalog', 'رقم الكتالوج')}</div><div className="two-fields">{editableField('supplier', 'المورد')}{editableField('finish', 'التشطيب أو الدهان')}</div>
+    <p className="section-label visibility-heading">إظهار خانات الصفحة</p>
+    <div className="visibility-grid">{['section', 'product', 'catalog', 'quantity', 'supplier', 'finish', 'image', 'specTable', 'notes'].map(key => <button key={key} className={`visibility-row ${visible(key) ? '' : 'is-hidden'}`} onClick={() => toggle(key)}><span>{{ section: 'القسم أو الفراغ', product: 'اسم القطعة', catalog: 'رقم الكتالوج', quantity: 'الكمية', supplier: 'المورد', finish: 'التشطيب أو الدهان', image: 'الصورة الرئيسية', specTable: 'جدول المواصفات', notes: 'ملاحظات الاعتماد' }[key]}</span><Eye size={13} /></button>)}</div>
     {editableField('notes', 'ملاحظات الاعتماد', true)}{pageImageEditor('الصورة الرئيسية')}
     <p className="section-label row-header">صفوف جدول المواصفات <button onClick={addRow}><Plus size={14} /> إضافة صف</button></p>
     {page.rows.map(row => <div className="row-editor" key={row.id}><div className="row-editor-title"><label className="row-visible"><input type="checkbox" checked={row.visible} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, visible: e.target.checked } : item) }))} /> ظاهر</label><input value={row.label} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, label: e.target.value } : item) }))} /><button title="تحريك لأعلى" onClick={() => moveRow(row.id, -1)}><ArrowUp size={13} /></button><button title="تحريك لأسفل" onClick={() => moveRow(row.id, 1)}><ArrowDown size={13} /></button><button title="حذف الصف" onClick={() => deleteRow(row.id)}><Trash2 size={13} /></button></div><textarea value={row.value} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, value: e.target.value } : item) }))} /></div>)}

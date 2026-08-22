@@ -67,7 +67,7 @@ function CoverPage({ page, settings, cb, readOnly, clientNumber }: { page: Catal
   </div></div>;
 }
 
-function ProductPage({ page, title, cb, readOnly }: { page: CatalogPage; title: string; cb: PageCallbacks; readOnly: boolean }) {
+function ProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
   const show = (key: string) => isFieldVisible(page, key);
   const meta = [
     ['quantity', 'الكمية'], ['catalog', 'رقم الكتالوج'], ['supplier', 'المورد'], ['finish', 'التشطيب'],
@@ -79,11 +79,9 @@ function ProductPage({ page, title, cb, readOnly }: { page: CatalogPage; title: 
   </div>
   {show('image') && <div className="product-hero"><ImagePlaceholder image={page.image} label="صورة المنتج الرئيسية" readOnly={readOnly} onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} /></div>}
   {meta.length > 0 && <div className="spec-meta" style={{ gridTemplateColumns: `repeat(${meta.length}, 1fr)` }}>{meta.map(([key, label]) => <span key={key}>{page.fields[key] || '—'} <b>{label}</b></span>)}</div>}
-  {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map((row, index) => <div className="spec-row" key={row.id}>
+  {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map(row => <div className="spec-row" key={row.id}>
     <div className="spec-label-cell"><input className="spec-label" readOnly={readOnly} value={row.label} onChange={e => cb.onUpdateRow(row.id, 'label', e.target.value)} /></div>
-    {index === 0
-      ? <div className="spec-value-cell"><span className="spec-title-tag">{title}</span><textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} /></div>
-      : <textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} />}
+    <textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} />
   </div>)}</div>}
   {show('notes') && <div className="approval-note"><span>ملاحظات الاعتماد</span><p>{page.fields.notes || '—'}</p></div>}
   </div>;
@@ -137,11 +135,10 @@ function FreePage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks
 
 export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnly = false, clientNumber }: { page: CatalogPage; pageNumber?: number; settings: Record<string, string | boolean>; callbacks?: Partial<PageCallbacks>; readOnly?: boolean; clientNumber?: number | null }) {
   const cb: PageCallbacks = { ...noopCallbacks, ...callbacks };
-  const title = page.fields.drawingTitle || page.fields.section || page.fields.heading || page.title;
   return <article className={`catalog-page page-${page.kind}`} style={{ '--primary': String(settings.primary), '--secondary': String(settings.secondary) } as React.CSSProperties}>
     <div className="page-ornament top" />{Boolean(settings.watermark) && <div className="page-watermark">{String(settings.companyEn)}</div>}<div className="page-brand"><img src={String(settings.logo || logoPath)} alt="شعار الشركة" /><span>{String(settings.companyEn)}</span></div>
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
-    {page.kind === 'product' && <ProductPage page={page} title={title} cb={cb} readOnly={readOnly} />}
+    {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'materials' && <MaterialsPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'plan' && <PlanPage page={page} cb={cb} readOnly={readOnly} />}
