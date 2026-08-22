@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FilePlus2, Layers, LayoutTemplate, LogOut, Sparkles } from "lucide-react";
+import { FilePlus2, Layers, LayoutTemplate, LogOut, Sparkles, Users } from "lucide-react";
 import { NotificationsBell } from "./notifications";
+import { AccountsModal } from "./accounts-modal";
 import {
   DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf,
 } from "./lib/project-utils";
@@ -41,6 +42,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
   onShowAll: () => void;
 }) {
   const [feed, setFeed] = useState<FactoryUpdate[]>([]);
+  const [showAccounts, setShowAccounts] = useState(false);
   useEffect(() => { api<{ updates: FactoryUpdate[] }>("/api/activity").then(d => setFeed(d.updates)).catch(() => undefined); }, []);
 
   const grouped: Record<DashboardGroup, ProjectSummary[]> = { pending: [], active: [], delivered: [] };
@@ -53,12 +55,14 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
         <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>لوحة <em>التحكم</em></strong><span>نظرة عامة على كل المشاريع</span></div></div>
         <div className="top-actions">
           <button className="primary-button" onClick={onCreateProject}><FilePlus2 size={16} /> مشروع جديد</button>
+          <button className="outline-button" onClick={() => setShowAccounts(true)}><Users size={16} /> الحسابات</button>
           <NotificationsBell projects={projects} onOpen={onOpenProject} />
           <span className="separator" />
           <div className="user-chip" title={user.username}>{user.displayName}</div>
           <button className="icon-button" title="تسجيل الخروج" onClick={onLogout}><LogOut size={16} /></button>
         </div>
       </header>
+      {showAccounts && <AccountsModal onClose={() => setShowAccounts(false)} />}
 
       <div className="dashboard-body">
         {loading && <p className="auth-hint">جارٍ التحميل...</p>}

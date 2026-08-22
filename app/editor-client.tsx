@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, BadgeCheck, ChevronLeft, Copy, Download, Eye, FileJson,
   FilePlus2, GripVertical, Home, Import, LayoutTemplate, LogOut, Menu, Palette, Pencil, Plus, Printer, Redo2,
-  Save, Search, Settings, ShieldCheck, Sparkles, Trash2, Undo2, Upload, UserPlus, Users, X, ZoomIn, ZoomOut
+  Save, Search, Settings, ShieldCheck, Sparkles, Trash2, Undo2, Upload, X, ZoomIn, ZoomOut
 } from 'lucide-react';
 import {
   CatalogPage, MaterialSample, PageKind, Project, ProductRow, isFieldVisible,
@@ -50,7 +50,6 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
-  const [showAccounts, setShowAccounts] = useState(false);
   const [toast, setToast] = useState('');
   const [history, setHistory] = useState<{ pages: CatalogPage[]; settings: Record<string, string | boolean> }[]>([]);
   const [future, setFuture] = useState<{ pages: CatalogPage[]; settings: Record<string, string | boolean> }[]>([]);
@@ -131,18 +130,24 @@ export default function EditorClient({ user }: { user: SessionUser }) {
 
   const [saving, setSaving] = useState(false);
   const clientNameRef = useRef<HTMLInputElement>(null);
+  const projectNameRef = useRef<HTMLInputElement>(null);
   const saveNow = async () => {
     if (!projectId) return;
+    const hasRealProjectName = projectName.trim() && projectName.trim() !== 'كتالوج جديد';
     const clientName = pages.find(page => page.kind === 'cover')?.fields.client ?? '';
     const hasRealClientName = clientName.trim() && clientName.trim() !== 'اسم العميل';
-    if (!hasRealClientName) {
+    if (!hasRealProjectName) {
+      projectNameRef.current?.focus();
+      projectNameRef.current?.select();
+      saveMessage('الرجاء إدخال اسم المشروع قبل الحفظ');
+    } else if (!hasRealClientName) {
       clientNameRef.current?.focus();
       saveMessage('الرجاء إدخال اسم العميل قبل الحفظ');
     }
     setSaving(true);
     try {
       await api(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ name: projectName, data: { settings, pages } }) });
-      if (hasRealClientName) saveMessage('تم حفظ المشروع');
+      if (hasRealProjectName && hasRealClientName) saveMessage('تم حفظ المشروع');
     } catch {
       saveMessage('تعذر حفظ المشروع، تحقق من الاتصال');
     } finally {
@@ -231,7 +236,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     <header className="topbar no-print">
       <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>محرّر <em>أوميرا</em></strong><span>كتالوجات الأثاث والمواصفات</span></div></div>
       <IconButton label="لوحة التحكم" onClick={() => { refreshProjectsList(); setView('dashboard'); }}><Home size={17} /></IconButton>
-      <div className="project-name"><Pencil size={14} /><input value={projectName} onChange={e => setProjectName(e.target.value)} /><span className="saved"><span className="status-dot" /> محفوظ تلقائيًا</span></div>
+      <div className="project-name"><Pencil size={14} /><input ref={projectNameRef} value={projectName} onChange={e => setProjectName(e.target.value)} /><span className="saved"><span className="status-dot" /> محفوظ تلقائيًا</span></div>
       <div className="client-name-field">
         <span>العميل {status?.clientNumber ? `#${status.clientNumber}` : ''}</span>
         <input
@@ -253,7 +258,6 @@ export default function EditorClient({ user }: { user: SessionUser }) {
           {status && isFactoryVisible(status.status) ? <BadgeCheck size={16} /> : <ShieldCheck size={16} />} {status ? STATUS_LABELS[status.status] : 'الاعتماد وبيانات العميل'}
         </button>
         <button className="outline-button" onClick={() => setShowSettings(true)}><Settings size={16} /> إعدادات الهوية</button>
-        <button className="outline-button" onClick={() => setShowAccounts(true)}><Users size={16} /> الحسابات</button>
         <NotificationsBell projects={allProjects} onOpen={(id) => { void openProjectById(id); }} />
         <IconButton label="المعاينة والطباعة" onClick={print}><Printer size={17} /></IconButton>
         <button className="primary-button" onClick={print}><Download size={16} /> حفظ PDF</button>
@@ -296,7 +300,6 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     {showTemplates && <TemplateModal onPick={addPage} onClose={() => setShowTemplates(false)} />}
     {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { await openProjectById(id); setShowProjects(false); saveMessage('تم فتح المشروع'); }} />}
     {showApproval && status && <StatusModal projectId={projectId} status={status} pages={pages} onClose={() => setShowApproval(false)} onClientNameChange={(value) => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: value } }), pages, commit)} onUpdated={(next) => { setStatus(next); refreshProjectsList(); }} />}
-    {showAccounts && <AccountsModal onClose={() => setShowAccounts(false)} />}
     {showPrint && <div className="print-only-stage">{pages.filter(page => !page.hidden).map((page, index) => <CatalogPageView key={page.id} page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly />)}</div>}
     <div className="print-all-pages no-print" aria-hidden style={{ display: 'none' }}>{pages.filter(page => !page.hidden).map((page, index) => <div key={page.id} className="print-page-wrapper"><CatalogPageView page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly /></div>)}</div>
     <input ref={importRef} type="file" accept="application/json" hidden onChange={importProject} />
@@ -393,57 +396,6 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
       <ActivityLog projectId={projectId} />
     </div>
     <div className="modal-foot"><span className="approval-hint">{status.statusUpdatedAt ? `آخر تحديث للمرحلة: ${new Date(status.statusUpdatedAt).toLocaleString('ar-SA')}` : 'لم تُحدَّث المرحلة بعد'}</span><button className="primary-button" disabled={busy} onClick={save}>{busy ? 'جارٍ الحفظ...' : 'حفظ'}</button></div>
-  </div></div>;
-}
-
-/* ---------------- إدارة الحسابات ---------------- */
-
-function AccountsModal({ onClose }: { onClose: () => void }) {
-  const [list, setList] = useState<{ id: number; username: string; displayName: string; role: string }[]>([]);
-  const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'engineer' | 'factory'>('factory');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const load = () => { api<{ users: typeof list }>('/api/users').then(d => setList(d.users)).catch(() => undefined); };
-  useEffect(load, []);
-
-  const create = async () => {
-    setError('');
-    setBusy(true);
-    try {
-      await api('/api/users', { method: 'POST', body: JSON.stringify({ username, password, displayName, role }) });
-      setUsername(''); setDisplayName(''); setPassword('');
-      load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'تعذر إنشاء الحساب'); } finally { setBusy(false); }
-  };
-  const remove = async (id: number) => {
-    if (!window.confirm('حذف هذا الحساب؟')) return;
-    try { await api(`/api/users/${id}`, { method: 'DELETE' }); load(); } catch (e) { setError(e instanceof Error ? e.message : 'تعذر الحذف'); }
-  };
-
-  return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal accounts-modal" onClick={e => e.stopPropagation()}>
-    <div className="modal-head"><div><span className="eyebrow">الوصول</span><h2>إدارة حسابات الدخول</h2></div><button onClick={onClose}><X size={19} /></button></div>
-    <div className="accounts-body">
-      <div className="accounts-list">
-        {list.map(item => <div className="account-row" key={item.id}><span className={`role-pill ${item.role}`}>{item.role === 'engineer' ? 'مهندس' : 'مصنع'}</span><div><strong>{item.displayName}</strong><small>{item.username}</small></div><button className="icon-button" onClick={() => remove(item.id)}><Trash2 size={15} /></button></div>)}
-        {list.length === 0 && <p className="empty-state">لا توجد حسابات إضافية بعد.</p>}
-      </div>
-      <div className="divider" />
-      <p className="section-label">إضافة حساب جديد</p>
-      <div className="two-fields">
-        <Field label="اسم المستخدم" value={username} onChange={setUsername} />
-        <Field label="الاسم الظاهر" value={displayName} onChange={setDisplayName} />
-      </div>
-      <div className="two-fields">
-        <label className="field"><span>كلمة المرور</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-        <label className="field"><span>نوع الحساب</span><select value={role} onChange={e => setRole(e.target.value as 'engineer' | 'factory')}><option value="factory">مصنع</option><option value="engineer">مهندس</option></select></label>
-      </div>
-      {error && <p className="auth-error">{error}</p>}
-      <button className="add-page-button wide" disabled={busy} onClick={create}><UserPlus size={15} /> إنشاء الحساب</button>
-    </div>
   </div></div>;
 }
 
