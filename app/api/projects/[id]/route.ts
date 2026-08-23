@@ -47,12 +47,23 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return Response.json({ error: "تعديل المشروع متاح لحساب المهندس فقط" }, { status: 403 });
     }
     const { id } = await context.params;
-    const payload = (await request.json()) as { name?: string; data?: unknown };
+    const payload = (await request.json()) as { name?: string; data?: unknown; clientNumber?: number | null };
     const db = getDb();
     const now = new Date().toISOString();
 
     const updates: Record<string, unknown> = { updatedAt: now };
     if (payload.name !== undefined) updates.name = payload.name;
+    if (payload.clientNumber !== undefined) {
+      if (payload.clientNumber === null || payload.clientNumber === ("" as unknown)) {
+        updates.clientNumber = null;
+      } else {
+        const parsed = Number(payload.clientNumber);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          return Response.json({ error: "كود العميل يجب أن يكون رقمًا صحيحًا موجبًا" }, { status: 400 });
+        }
+        updates.clientNumber = parsed;
+      }
+    }
     if (payload.data !== undefined) {
       const serialized = JSON.stringify(payload.data);
       // مشروع كبير جدًا (غالبًا صور غير مضغوطة) يتجاوز حد وقت معالجة
@@ -68,7 +79,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     if (!updated) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });
-    return Response.json({ project: { id: updated.id, name: updated.name, clientName: updated.clientName, updatedAt: updated.updatedAt } });
+    return Response.json({ project: { id: updated.id, name: updated.name, clientName: updated.clientName, clientNumber: updated.clientNumber, updatedAt: updated.updatedAt } });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });
   }

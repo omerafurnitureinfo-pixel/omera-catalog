@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FilePlus2, Layers, LayoutTemplate, LogOut, Sparkles, Users } from "lucide-react";
+import { FilePlus2, Hash, Layers, LayoutTemplate, LogOut, Sparkles, Trash2, Users } from "lucide-react";
 import { NotificationsBell } from "./notifications";
 import { AccountsModal } from "./accounts-modal";
 import {
@@ -20,30 +20,82 @@ async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> 
 
 const GROUP_ORDER: DashboardGroup[] = ["pending", "active", "delivered"];
 
-function ProjectRow({ project, onOpen }: { project: ProjectSummary; onOpen: (id: string) => void }) {
+function ProjectRow({ project, onOpen, onEditCode, onDelete }: {
+  project: ProjectSummary;
+  onOpen: (id: string) => void;
+  onEditCode?: (project: ProjectSummary) => void;
+  onDelete?: (project: ProjectSummary) => void;
+}) {
+  // اسم العميل هو العنوان الأساسي، وكود العميل أسفل منه مباشرة.
+  const title = project.clientName?.trim() || project.name || "بلا عميل بعد";
   return (
-    <button className="dash-project-row" onClick={() => onOpen(project.id)}>
+    <div className="dash-project-row" role="button" tabIndex={0}
+      onClick={() => onOpen(project.id)}
+      onKeyDown={e => e.key === "Enter" && onOpen(project.id)}>
       <div className="dash-project-row-main">
-        <strong>{project.name}</strong>
-        <span>{project.clientName ? `${project.clientName}${project.clientNumber ? ` #${project.clientNumber}` : ""}` : "بلا عميل بعد"}</span>
+        <strong>{title}</strong>
+        <span>{project.clientNumber ? `كود العميل: ${project.clientNumber}` : "بلا كود عميل"}</span>
       </div>
       <span className={`status-pill status-${project.status}`}>{STATUS_LABELS[project.status]}</span>
-    </button>
+      {onEditCode && (
+        <button className="dash-row-action" title="تغيير كود العميل"
+          onClick={e => { e.stopPropagation(); onEditCode(project); }}>
+          <Hash size={14} />
+        </button>
+      )}
+      {onDelete && (
+        <button className="dash-row-action danger" title="حذف المشروع"
+          onClick={e => { e.stopPropagation(); onDelete(project); }}>
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
-export function Dashboard({ user, projects, loading, onOpenProject, onCreateProject, onLogout, onShowAll }: {
+export function Dashboard({ user, projects, loading, onOpenProject, onCreateProject, onLogout, onShowAll, onProjectsChanged }: {
   user: SessionUser;
   projects: ProjectSummary[];
   loading: boolean;
   onOpenProject: (id: string) => void;
-  onCreateProject: () => void;
+  onCreateProject: (clientName: string) => void;
   onLogout: () => void;
   onShowAll: () => void;
+  onProjectsChanged: () => void;
 }) {
   const [feed, setFeed] = useState<FactoryUpdate[]>([]);
   const [showAccounts, setShowAccounts] = useState(false);
+  const [error, setError] = useState("");
   useEffect(() => { api<{ updates: FactoryUpdate[] }>("/api/activity").then(d => setFeed(d.updates)).catch(() => undefined); }, []);
+
+  const createProject = () => {
+    const clientName = window.prompt("اسم العميل للمشروع الجديد:");
+    if (clientName === null || !clientName.trim()) return;
+    onCreateProject(clientName);
+  };
+
+  const editCode = async (project: ProjectSummary) => {
+    const entered = window.prompt(`كود العميل لمشروع "${project.clientName || project.name}":`, project.clientNumber ? String(project.clientNumber) : "");
+    if (entered === null) return;
+    setError("");
+    try {
+      await api(`/api/projects/${project.id}`, { method: "PUT", body: JSON.stringify({ clientNumber: entered.trim() === "" ? null : Number(entered.trim()) }) });
+      onProjectsChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر تغيير كود العميل");
+    }
+  };
+
+  const deleteProject = async (project: ProjectSummary) => {
+    if (!window.confirm(`حذف مشروع "${project.clientName || project.name}" نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+    setError("");
+    try {
+      await api(`/api/projects/${project.id}`, { method: "DELETE" });
+      onProjectsChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "تعذر حذف المشروع");
+    }
+  };
 
   const grouped: Record<DashboardGroup, ProjectSummary[]> = { pending: [], active: [], delivered: [] };
   for (const p of projects) grouped[dashboardGroupOf(p.status)].push(p);
@@ -54,7 +106,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
       <header className="topbar no-print">
         <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>لوحة <em>التحكم</em></strong><span>نظرة عامة على كل المشاريع</span></div></div>
         <div className="top-actions">
-          <button className="primary-button" onClick={onCreateProject}><FilePlus2 size={16} /> مشروع جديد</button>
+          <button className="primary-button" onClick={createProject}><FilePlus2 size={16} /> مشروع جديد</button>
           <button className="outline-button" onClick={() => setShowAccounts(true)}><Users size={16} /> الحسابات</button>
           <NotificationsBell projects={projects} onOpen={onOpenProject} />
           <span className="separator" />
@@ -66,6 +118,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
 
       <div className="dashboard-body">
         {loading && <p className="auth-hint">جارٍ التحميل...</p>}
+        {error && <p className="auth-error">{error}</p>}
 
         <section className="dashboard-feed">
           <p className="section-label"><span className="section-label-title"><Layers size={13} /> تحديثات المصنع</span></p>
@@ -89,7 +142,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
               <p className="section-label">{DASHBOARD_GROUP_LABELS[group]} <span className="dash-count">{grouped[group].length}</span></p>
               {grouped[group].length === 0 && <p className="empty-state">لا توجد مشاريع هنا حاليًا.</p>}
               <div className="dash-project-list">
-                {grouped[group].map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} />)}
+                {grouped[group].map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={deleteProject} />)}
               </div>
             </section>
           ))}
@@ -99,7 +152,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
           <p className="section-label"><span className="section-label-title"><LayoutTemplate size={13} /> المشاريع السابقة</span><button onClick={onShowAll}>عرض الكل وبحث</button></p>
           {recent.length === 0 && !loading && <p className="empty-state">لا توجد مشاريع بعد — ابدأ بإنشاء أول مشروع.</p>}
           <div className="dash-project-list">
-            {recent.map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} />)}
+            {recent.map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={deleteProject} />)}
           </div>
         </section>
       </div>

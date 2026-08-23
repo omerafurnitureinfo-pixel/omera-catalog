@@ -108,10 +108,17 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     setFuture([]);
   };
 
-  const createNewProject = async (name = 'كتالوج جديد') => {
+  // المشروع الجديد يُسمّى باسم العميل مباشرة (بدل "كتالوج جديد")، ويُكتب
+  // نفس الاسم في خانة العميل بصفحة الغلاف حتى يبقيا مرتبطين من البداية.
+  const createNewProject = async (clientName: string) => {
+    const name = clientName.trim();
+    if (!name) return;
     const data = newProjectData();
     const cover = data.pages.find(page => page.kind === 'cover');
-    if (cover && user.displayName) cover.fields.designer = user.displayName;
+    if (cover) {
+      cover.fields.client = name;
+      if (user.displayName) cover.fields.designer = user.displayName;
+    }
     const id = uid();
     await api('/api/projects', { method: 'POST', body: JSON.stringify({ id, name, data }) });
     await openProjectById(id);
@@ -247,7 +254,11 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     event.target.value = '';
   };
   const print = () => { window.print(); };
-  const createNew = () => { if (!window.confirm('إنشاء مشروع جديد؟ سيتم حفظ المشروع الحالي تلقائيًا.')) return; void createNewProject(); };
+  const createNew = () => {
+    const clientName = window.prompt('اسم العميل للمشروع الجديد:');
+    if (clientName === null || !clientName.trim()) return;
+    void createNewProject(clientName);
+  };
   const logout = async () => { await api('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; };
 
   const updateSetting = (key: string, value: string | boolean) => setSettings(current => ({ ...current, [key]: value }));
@@ -265,9 +276,10 @@ export default function EditorClient({ user }: { user: SessionUser }) {
         projects={allProjects}
         loading={!hydrated}
         onOpenProject={id => void openProjectFromDashboard(id)}
-        onCreateProject={() => void createNewProject()}
+        onCreateProject={clientName => void createNewProject(clientName)}
         onLogout={logout}
         onShowAll={() => setShowProjects(true)}
+        onProjectsChanged={refreshProjectsList}
       />
       {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { setShowProjects(false); await openProjectFromDashboard(id); }} />}
       {toast && <div className="toast"><span className="status-dot" /> {toast}</div>}
@@ -492,9 +504,9 @@ function PageInspector({ page, updateField, updatePage, uploadImage, addRow, del
   </div>;
   if (page.kind === 'product') return <div className="inspector-fields">
     {editableField('section', 'القسم أو الفراغ')}{editableField('product', 'اسم القطعة')}
-    <div className="two-fields">{editableField('quantity', 'الكمية')}{editableField('catalog', 'رقم الكتالوج')}</div><div className="two-fields">{editableField('supplier', 'المورد')}{editableField('finish', 'التشطيب أو الدهان')}</div>
+    {editableField('catalog', 'رقم الكتالوج')}
     <p className="section-label visibility-heading">إظهار خانات الصفحة</p>
-    <div className="visibility-grid">{['section', 'product', 'catalog', 'quantity', 'supplier', 'finish', 'image', 'specTable', 'notes'].map(key => <button key={key} className={`visibility-row ${visible(key) ? '' : 'is-hidden'}`} onClick={() => toggle(key)}><span>{{ section: 'القسم أو الفراغ', product: 'اسم القطعة', catalog: 'رقم الكتالوج', quantity: 'الكمية', supplier: 'المورد', finish: 'التشطيب أو الدهان', image: 'الصورة الرئيسية', specTable: 'جدول المواصفات', notes: 'ملاحظات الاعتماد' }[key]}</span><Eye size={13} /></button>)}</div>
+    <div className="visibility-grid">{['section', 'product', 'catalog', 'image', 'specTable', 'notes'].map(key => <button key={key} className={`visibility-row ${visible(key) ? '' : 'is-hidden'}`} onClick={() => toggle(key)}><span>{{ section: 'القسم أو الفراغ', product: 'اسم القطعة', catalog: 'رقم الكتالوج', image: 'الصورة الرئيسية', specTable: 'جدول المواصفات', notes: 'ملاحظات الاعتماد' }[key]}</span><Eye size={13} /></button>)}</div>
     {editableField('notes', 'ملاحظات الاعتماد', true)}{pageImageEditor('الصورة الرئيسية')}
     <p className="section-label row-header">صفوف جدول المواصفات <button onClick={addRow}><Plus size={14} /> إضافة صف</button></p>
     {page.rows.map(row => <div className="row-editor" key={row.id}><div className="row-editor-title"><label className="row-visible"><input type="checkbox" checked={row.visible} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, visible: e.target.checked } : item) }))} /> ظاهر</label><input value={row.label} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, label: e.target.value } : item) }))} /><button title="تحريك لأعلى" onClick={() => moveRow(row.id, -1)}><ArrowUp size={13} /></button><button title="تحريك لأسفل" onClick={() => moveRow(row.id, 1)}><ArrowDown size={13} /></button><button title="حذف الصف" onClick={() => deleteRow(row.id)}><Trash2 size={13} /></button></div><textarea value={row.value} onChange={e => updatePage(current => ({ ...current, rows: current.rows.map(item => item.id === row.id ? { ...item, value: e.target.value } : item) }))} /></div>)}

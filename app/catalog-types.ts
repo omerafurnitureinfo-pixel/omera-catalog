@@ -17,9 +17,8 @@ export const blankSample = (): MaterialSample => ({ id: uid(), name: 'عينة �
 export const productRows = (): ProductRow[] => [
   { id: uid(), label: 'الوصف', value: 'قطعة أثاث مختارة بعناية', visible: true },
   { id: uid(), label: 'الأبعاد', value: 'W: 000 cm  |  H: 000 cm  |  D: 000 cm', visible: true },
-  { id: uid(), label: 'الخامات والأكواد', value: 'السطح: ______   |   القاعدة: ______   |   الظهر: ______', visible: true },
-  { id: uid(), label: 'المورد والمجموعة', value: '', visible: true },
   { id: uid(), label: 'الدهان', value: '', visible: true },
+  { id: uid(), label: 'القماش', value: '', visible: true },
   { id: uid(), label: 'بريم', value: '', visible: true },
   { id: uid(), label: 'ملاحظات الاعتماد', value: '', visible: true },
 ];
@@ -40,7 +39,30 @@ export const newProjectData = (): ProjectData => ({ settings: { ...defaultSettin
 
 export const isFieldVisible = (page: CatalogPage, key: string) => !(page.hiddenFields ?? []).includes(key);
 
+// تسميات صفوف قديمة تُحدَّث تلقائيًا عند فتح أي مشروع، حتى تتطابق المشاريع
+// السابقة مع التسميات الجديدة بلا تدخل يدوي.
+const RENAMED_ROW_LABELS: Record<string, string> = {
+  'الخامات': 'الدهان',
+  'الخامات والأكواد': 'الدهان',
+  'المورد والمجموعة': 'القماش',
+};
+
+// يُعيد تسمية الصفوف القديمة، ويحذف الصف المكرر الناتج فقط إن كان فارغًا
+// تمامًا — أي صف يحوي نصًا أو صورة يبقى كما هو حتى لا تُفقد بيانات.
+const normalizeRows = (rows: ProductRow[] = []): ProductRow[] => {
+  const seen = new Set<string>();
+  const result: ProductRow[] = [];
+  for (const row of rows) {
+    const label = RENAMED_ROW_LABELS[row.label] ?? row.label;
+    const hasContent = Boolean((row.value ?? '').trim()) || Boolean(row.image);
+    if (seen.has(label) && !hasContent) continue;
+    seen.add(label);
+    result.push(label === row.label ? row : { ...row, label });
+  }
+  return result;
+};
+
 export const normalizeProjectData = (data: ProjectData): ProjectData => ({
   settings: { ...defaultSettings, ...data.settings, logo: !data.settings?.logo || data.settings.logo === '/assets/images/omera-logo.jpg' ? logoPath : data.settings.logo },
-  pages: (data.pages || []).map(page => ({ ...page, hiddenFields: page.hiddenFields ?? [] })),
+  pages: (data.pages || []).map(page => ({ ...page, hiddenFields: page.hiddenFields ?? [], rows: normalizeRows(page.rows) })),
 });

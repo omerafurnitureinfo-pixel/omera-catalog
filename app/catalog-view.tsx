@@ -69,16 +69,12 @@ function CoverPage({ page, settings, cb, readOnly, clientNumber }: { page: Catal
 
 function ProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
   const show = (key: string) => isFieldVisible(page, key);
-  const meta = [
-    ['quantity', 'الكمية'], ['catalog', 'رقم الكتالوج'], ['supplier', 'المورد'], ['finish', 'التشطيب'],
-  ].filter(([key]) => show(key));
   return <div className="product-layout"><div className="page-heading">
     {show('section') && <span>{page.fields.section}</span>}
     {show('product') && <input readOnly={readOnly} value={page.fields.product} onChange={e => cb.onField('product', e.target.value)} />}
     {show('catalog') && <small>PRODUCT SPECIFICATION / {page.fields.catalog}</small>}
   </div>
   {show('image') && <div className="product-hero"><ImagePlaceholder image={page.image} label="صورة المنتج الرئيسية" readOnly={readOnly} onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} /></div>}
-  {meta.length > 0 && <div className="spec-meta" style={{ gridTemplateColumns: `repeat(${meta.length}, 1fr)` }}>{meta.map(([key, label]) => <span key={key}>{page.fields[key] || '—'} <b>{label}</b></span>)}</div>}
   {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map(row => <div className="spec-row" key={row.id}>
     <div className="spec-label-cell"><input className="spec-label" readOnly={readOnly} value={row.label} onChange={e => cb.onUpdateRow(row.id, 'label', e.target.value)} /></div>
     <div className="spec-value-cell">
