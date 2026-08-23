@@ -29,6 +29,38 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
   return <button className="icon-button" onClick={onClick} title={label} aria-label={label}>{children}</button>;
 }
 
+// صور الهاتف الحديثة تصل لعدة ميجابايت بدون ضغط، وتُخزَّن كـ base64 داخل
+// JSON المشروع — بدون تصغير، مشروع فيه بضع صور يتجاوز حجم البيانات
+// حد وقت المعالجة (CPU) في Cloudflare Workers فيفشل الحفظ. نصغّر أي صورة
+// مرفوعة إلى 1600px كحد أقصى ونعيد ضغطها JPEG قبل تخزينها.
+function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('تعذرت قراءة الملف'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('تعذرت قراءة الصورة'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          const scale = maxDimension / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(String(reader.result)); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function Thumb({ page }: { page: CatalogPage }) {
   return <div className="thumb-content"><span>{page.kind === 'cover' ? 'OMERA' : page.kind === 'technical' ? '⌗' : page.kind === 'materials' ? '●  ●  ●' : page.kind === 'plan' ? '⌘' : '◇'}</span><i>{page.kind === 'cover' ? 'كتالوج الأثاث' : page.title}</i><b /><b /><b /></div>;
 }
@@ -170,7 +202,13 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   };
   const updatePage = (updater: (page: CatalogPage) => CatalogPage) => commit(current => ({ pages: current.pages.map(page => page.id === selected.id ? updater(page) : page) }));
   const updateField = (key: string, value: string) => updatePage(page => ({ ...page, fields: { ...page.fields, [key]: value } }));
-  const uploadImage = (file: File, callback: (data: string) => void) => { const reader = new FileReader(); reader.onload = () => callback(String(reader.result)); reader.readAsDataURL(file); };
+  const uploadImage = (file: File, callback: (data: string) => void) => {
+    compressImage(file).then(callback).catch(() => {
+      const reader = new FileReader();
+      reader.onload = () => callback(String(reader.result));
+      reader.readAsDataURL(file);
+    });
+  };
   const undo = () => { const previous = history[history.length - 1]; if (!previous) return; setFuture(items => [...items, { pages, settings }]); setPages(previous.pages); setSettings(previous.settings); setHistory(items => items.slice(0, -1)); };
   const redo = () => { const next = future[future.length - 1]; if (!next) return; setHistory(items => [...items, { pages, settings }]); setPages(next.pages); setSettings(next.settings); setFuture(items => items.slice(0, -1)); };
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveMessage('يُحفظ المشروع تلقائيًا بعد كل تعديل'); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); undo(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); });
@@ -287,8 +325,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
           <CatalogPageView page={selected} pageNumber={pages.findIndex(page => page.id === selected.id) + 1} settings={settings} clientNumber={status?.clientNumber}
             callbacks={{
               onField: updateField,
-              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : ({ ...page, image: key === 'page' ? data : page.image, fields: { ...page.fields, [key]: data } }))),
-              onRemoveImage: (key) => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: undefined } : sample) } : ({ ...page, image: key === 'page' ? undefined : page.image, fields: { ...page.fields, [key]: '' } })),
+              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : key === 'page' ? { ...page, image: data } : { ...page, fields: { ...page.fields, [key]: data } })),
+              onRemoveImage: (key) => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: undefined } : sample) } : key === 'page' ? { ...page, image: undefined } : { ...page, fields: { ...page.fields, [key]: '' } }),
               onUpdateRow: updateRow,
               onUpdateSample: updateSample,
             }} />

@@ -54,7 +54,15 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const updates: Record<string, unknown> = { updatedAt: now };
     if (payload.name !== undefined) updates.name = payload.name;
     if (payload.data !== undefined) {
-      updates.data = JSON.stringify(payload.data);
+      const serialized = JSON.stringify(payload.data);
+      // مشروع كبير جدًا (غالبًا صور غير مضغوطة) يتجاوز حد وقت معالجة
+      // Cloudflare Workers أثناء الحفظ فيفشل الطلب بلا رسالة واضحة. نرفض
+      // مبكرًا برسالة يفهمها المستخدم بدل انهيار الطلب لاحقًا بصمت.
+      const MAX_PROJECT_BYTES = 2_500_000;
+      if (serialized.length > MAX_PROJECT_BYTES) {
+        return Response.json({ error: "حجم المشروع كبير جدًا للحفظ (على الأغلب بسبب صور كبيرة). قلّل حجم بعض الصور أو احذف صورًا غير ضرورية ثم حاول الحفظ مجددًا." }, { status: 413 });
+      }
+      updates.data = serialized;
       updates.clientName = extractClientName(payload.data);
     }
 
