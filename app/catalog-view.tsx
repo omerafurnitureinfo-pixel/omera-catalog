@@ -81,7 +81,10 @@ function ProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallba
   {meta.length > 0 && <div className="spec-meta" style={{ gridTemplateColumns: `repeat(${meta.length}, 1fr)` }}>{meta.map(([key, label]) => <span key={key}>{page.fields[key] || '—'} <b>{label}</b></span>)}</div>}
   {show('specTable') && <div className="editable-spec-table">{page.rows.filter(row => row.visible).map(row => <div className="spec-row" key={row.id}>
     <div className="spec-label-cell"><input className="spec-label" readOnly={readOnly} value={row.label} onChange={e => cb.onUpdateRow(row.id, 'label', e.target.value)} /></div>
-    <textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} />
+    <div className="spec-value-cell">
+      <textarea className="spec-value" readOnly={readOnly} value={row.value} onChange={e => cb.onUpdateRow(row.id, 'value', e.target.value)} />
+      {(row.image || !readOnly) && <div className="spec-row-image"><ImagePlaceholder image={row.image} label="إضافة صورة" readOnly={readOnly} onUpload={file => cb.onUpload(file, `row-${row.id}`)} onRemove={() => cb.onRemoveImage(`row-${row.id}`)} /></div>}
+    </div>
   </div>)}</div>}
   {show('notes') && <div className="approval-note"><span>ملاحظات الاعتماد</span><p>{page.fields.notes || '—'}</p></div>}
   </div>;

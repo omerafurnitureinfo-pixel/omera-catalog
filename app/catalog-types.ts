@@ -1,6 +1,6 @@
 export type PageKind = 'cover' | 'product' | 'technical' | 'materials' | 'plan' | 'free';
 export type MaterialSample = { id: string; name: string; supplier: string; code: string; color: string; use: string; quantity: string; notes: string; image?: string; swatch: string };
-export type ProductRow = { id: string; label: string; value: string; visible: boolean };
+export type ProductRow = { id: string; label: string; value: string; visible: boolean; image?: string };
 export type CatalogPage = { id: string; kind: PageKind; title: string; hidden: boolean; image?: string; hiddenFields?: string[]; fields: Record<string, string>; rows: ProductRow[]; samples: MaterialSample[] };
 export type ProjectData = { settings: Record<string, string | boolean>; pages: CatalogPage[] };
 export type Project = { id: string; name: string; updatedAt: string } & ProjectData;
@@ -17,9 +17,9 @@ export const blankSample = (): MaterialSample => ({ id: uid(), name: 'عينة �
 export const productRows = (): ProductRow[] => [
   { id: uid(), label: 'الوصف', value: 'قطعة أثاث مختارة بعناية', visible: true },
   { id: uid(), label: 'الأبعاد', value: 'W: 000 cm  |  H: 000 cm  |  D: 000 cm', visible: true },
-  { id: uid(), label: 'الخامات', value: 'السطح: ______   |   القاعدة: ______   |   الظهر: ______', visible: true },
+  { id: uid(), label: 'الخامات والأكواد', value: 'السطح: ______   |   القاعدة: ______   |   الظهر: ______', visible: true },
   { id: uid(), label: 'المورد والمجموعة', value: '', visible: true },
-  { id: uid(), label: 'الكود والتشطيب', value: '', visible: true },
+  { id: uid(), label: 'الدهان', value: '', visible: true },
   { id: uid(), label: 'بريم', value: '', visible: true },
   { id: uid(), label: 'ملاحظات الاعتماد', value: '', visible: true },
 ];

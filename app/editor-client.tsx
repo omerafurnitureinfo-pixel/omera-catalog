@@ -87,7 +87,6 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const [future, setFuture] = useState<{ pages: CatalogPage[]; settings: Record<string, string | boolean> }[]>([]);
   const [draggedId, setDraggedId] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showPrint, setShowPrint] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   const selected = pages.find(page => page.id === selectedId) ?? pages[0];
@@ -246,7 +245,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     reader.readAsText(file);
     event.target.value = '';
   };
-  const print = () => { setShowPrint(true); window.setTimeout(() => { window.print(); window.setTimeout(() => setShowPrint(false), 500); }, 80); };
+  const print = () => { window.print(); };
   const createNew = () => { if (!window.confirm('إنشاء مشروع جديد؟ سيتم حفظ المشروع الحالي تلقائيًا.')) return; void createNewProject(); };
   const logout = async () => { await api('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; };
 
@@ -325,8 +324,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
           <CatalogPageView page={selected} pageNumber={pages.findIndex(page => page.id === selected.id) + 1} settings={settings} clientNumber={status?.clientNumber}
             callbacks={{
               onField: updateField,
-              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : key === 'page' ? { ...page, image: data } : { ...page, fields: { ...page.fields, [key]: data } })),
-              onRemoveImage: (key) => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: undefined } : sample) } : key === 'page' ? { ...page, image: undefined } : { ...page, fields: { ...page.fields, [key]: '' } }),
+              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : key.startsWith('row-') ? { ...page, rows: page.rows.map(row => row.id === key.replace('row-', '') ? { ...row, image: data } : row) } : key === 'page' ? { ...page, image: data } : { ...page, fields: { ...page.fields, [key]: data } })),
+              onRemoveImage: (key) => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: undefined } : sample) } : key.startsWith('row-') ? { ...page, rows: page.rows.map(row => row.id === key.replace('row-', '') ? { ...row, image: undefined } : row) } : key === 'page' ? { ...page, image: undefined } : { ...page, fields: { ...page.fields, [key]: '' } }),
               onUpdateRow: updateRow,
               onUpdateSample: updateSample,
             }} />
@@ -344,7 +343,6 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     {showTemplates && <TemplateModal onPick={addPage} onClose={() => setShowTemplates(false)} />}
     {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { await openProjectById(id); setShowProjects(false); saveMessage('تم فتح المشروع'); }} />}
     {showApproval && status && <StatusModal projectId={projectId} status={status} pages={pages} onClose={() => setShowApproval(false)} onClientNameChange={(value) => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: value } }), pages, commit)} onUpdated={(next) => { setStatus(next); refreshProjectsList(); }} />}
-    {showPrint && <div className="print-only-stage">{pages.filter(page => !page.hidden).map((page, index) => <CatalogPageView key={page.id} page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly />)}</div>}
     <div className="print-all-pages no-print" aria-hidden style={{ display: 'none' }}>{pages.filter(page => !page.hidden).map((page, index) => <div key={page.id} className="print-page-wrapper"><CatalogPageView page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly /></div>)}</div>
     <input ref={importRef} type="file" accept="application/json" hidden onChange={importProject} />
     {toast && <div className="toast"><span className="status-dot" /> {toast}</div>}
