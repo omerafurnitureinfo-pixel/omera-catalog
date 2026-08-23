@@ -109,10 +109,16 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // تسجيل خروج تلقائي عند إغلاق الصفحة أو التبويب (وليس فقط عند إغلاق
-  // المتصفح كاملًا). sendBeacon يضمن إرسال الطلب حتى مع إغلاق الصفحة فورًا.
+  // تسجيل خروج تلقائي عند إغلاق الصفحة أو التبويب فعليًا. event.persisted
+  // يكون true عند مجرد تصغير المتصفح أو التبديل بين التطبيقات على الجوال
+  // (الصفحة تُحفظ في bfcache لاستئنافها لاحقًا) — لا نسجّل الخروج في هذه
+  // الحالة حتى لا ننهي الجلسة أثناء استخدام فعلي للموقع، بل فقط عند
+  // الإغلاق الحقيقي (persisted=false).
   useEffect(() => {
-    const onHide = () => { navigator.sendBeacon('/api/auth/logout'); };
+    const onHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      navigator.sendBeacon('/api/auth/logout');
+    };
     window.addEventListener('pagehide', onHide);
     return () => window.removeEventListener('pagehide', onHide);
   }, []);
@@ -123,7 +129,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     if (!hydrated || !projectId) return;
     const timer = window.setTimeout(() => {
       api(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ name: projectName, data: { settings, pages } }) })
-        .catch(() => saveMessage('تعذر حفظ المشروع، تحقق من الاتصال'));
+        .catch((e) => saveMessage(e instanceof Error && e.message ? `تعذر الحفظ: ${e.message}` : 'تعذر حفظ المشروع، تحقق من الاتصال'));
     }, 600);
     return () => window.clearTimeout(timer);
   }, [pages, settings, projectName, projectId, hydrated]);
@@ -148,8 +154,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     try {
       await api(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify({ name: projectName, data: { settings, pages } }) });
       if (hasRealProjectName && hasRealClientName) saveMessage('تم حفظ المشروع');
-    } catch {
-      saveMessage('تعذر حفظ المشروع، تحقق من الاتصال');
+    } catch (e) {
+      saveMessage(e instanceof Error && e.message ? `تعذر الحفظ: ${e.message}` : 'تعذر حفظ المشروع، تحقق من الاتصال');
     } finally {
       setSaving(false);
     }

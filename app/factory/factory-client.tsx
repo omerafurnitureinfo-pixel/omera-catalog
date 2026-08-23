@@ -42,7 +42,10 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
   useEffect(load, []);
 
   useEffect(() => {
-    const onHide = () => { navigator.sendBeacon("/api/auth/logout"); };
+    const onHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      navigator.sendBeacon("/api/auth/logout");
+    };
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
   }, []);
@@ -61,8 +64,8 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     if (openProject?.id === id) setOpenProject((p) => (p ? { ...p, completionPercent: value } : p));
     try {
       await api(`/api/projects/${id}/progress`, { method: "POST", body: JSON.stringify({ completionPercent: value }) });
-    } catch {
-      setError("تعذر حفظ نسبة الإنجاز، حاول مجددًا");
+    } catch (e) {
+      setError(e instanceof Error && e.message ? `تعذر حفظ نسبة الإنجاز: ${e.message}` : "تعذر حفظ نسبة الإنجاز، حاول مجددًا");
       load();
     }
   };
