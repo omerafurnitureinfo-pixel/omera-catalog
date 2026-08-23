@@ -58,7 +58,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       // مشروع كبير جدًا (غالبًا صور غير مضغوطة) يتجاوز حد وقت معالجة
       // Cloudflare Workers أثناء الحفظ فيفشل الطلب بلا رسالة واضحة. نرفض
       // مبكرًا برسالة يفهمها المستخدم بدل انهيار الطلب لاحقًا بصمت.
-      const MAX_PROJECT_BYTES = 2_500_000;
+      const MAX_PROJECT_BYTES = 3_200_000;
       if (serialized.length > MAX_PROJECT_BYTES) {
         return Response.json({ error: "حجم المشروع كبير جدًا للحفظ (على الأغلب بسبب صور كبيرة). قلّل حجم بعض الصور أو احذف صورًا غير ضرورية ثم حاول الحفظ مجددًا." }, { status: 413 });
       }

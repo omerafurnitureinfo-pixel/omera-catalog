@@ -33,7 +33,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
 // JSON المشروع — بدون تصغير، مشروع فيه بضع صور يتجاوز حجم البيانات
 // حد وقت المعالجة (CPU) في Cloudflare Workers فيفشل الحفظ. نصغّر أي صورة
 // مرفوعة إلى 1600px كحد أقصى ونعيد ضغطها JPEG قبل تخزينها.
-function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<string> {
+function compressImage(file: File, maxDimension = 1200, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(reader.error ?? new Error('تعذرت قراءة الملف'));
@@ -201,8 +201,9 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   };
   const updatePage = (updater: (page: CatalogPage) => CatalogPage) => commit(current => ({ pages: current.pages.map(page => page.id === selected.id ? updater(page) : page) }));
   const updateField = (key: string, value: string) => updatePage(page => ({ ...page, fields: { ...page.fields, [key]: value } }));
-  const uploadImage = (file: File, callback: (data: string) => void) => {
-    compressImage(file).then(callback).catch(() => {
+  const uploadImage = (file: File, callback: (data: string) => void, small = false) => {
+    const compressed = small ? compressImage(file, 700, 0.68) : compressImage(file);
+    compressed.then(callback).catch(() => {
       const reader = new FileReader();
       reader.onload = () => callback(String(reader.result));
       reader.readAsDataURL(file);
@@ -324,7 +325,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
           <CatalogPageView page={selected} pageNumber={pages.findIndex(page => page.id === selected.id) + 1} settings={settings} clientNumber={status?.clientNumber}
             callbacks={{
               onField: updateField,
-              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : key.startsWith('row-') ? { ...page, rows: page.rows.map(row => row.id === key.replace('row-', '') ? { ...row, image: data } : row) } : key === 'page' ? { ...page, image: data } : { ...page, fields: { ...page.fields, [key]: data } })),
+              onUpload: (file, key) => uploadImage(file, data => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: data } : sample) } : key.startsWith('row-') ? { ...page, rows: page.rows.map(row => row.id === key.replace('row-', '') ? { ...row, image: data } : row) } : key === 'page' ? { ...page, image: data } : { ...page, fields: { ...page.fields, [key]: data } }), key.startsWith('sample-') || key.startsWith('row-')),
               onRemoveImage: (key) => updatePage(page => key.startsWith('sample-') ? { ...page, samples: page.samples.map(sample => sample.id === key.replace('sample-', '') ? { ...sample, image: undefined } : sample) } : key.startsWith('row-') ? { ...page, rows: page.rows.map(row => row.id === key.replace('row-', '') ? { ...row, image: undefined } : row) } : key === 'page' ? { ...page, image: undefined } : { ...page, fields: { ...page.fields, [key]: '' } }),
               onUpdateRow: updateRow,
               onUpdateSample: updateSample,
@@ -502,7 +503,7 @@ function PageInspector({ page, updateField, updatePage, uploadImage, addRow, del
     {editableField('section', 'عنوان اللوحة')}{editableField('description', 'وصف اللوحة', true)}
     <button className="add-page-button wide" onClick={addSample}><Plus size={15} /> إضافة عينة جديدة</button>
     {page.samples.map(sample => <div className="sample-editor" key={sample.id}><div className="row-editor-title"><strong>{sample.name}</strong><button title="تحريك لأعلى" onClick={() => moveSample(sample.id, -1)}><ArrowUp size={13} /></button><button title="تحريك لأسفل" onClick={() => moveSample(sample.id, 1)}><ArrowDown size={13} /></button><button title="حذف العينة" onClick={() => deleteSample(sample.id)}><Trash2 size={13} /></button></div>
-      <div className="inspector-image compact"><ImagePlaceholder image={sample.image} label="رفع صورة" onUpload={file => uploadImage(file, data => updateSample(sample.id, 'image', data))} onRemove={() => updateSample(sample.id, 'image', '')} /></div>
+      <div className="inspector-image compact"><ImagePlaceholder image={sample.image} label="رفع صورة" onUpload={file => uploadImage(file, data => updateSample(sample.id, 'image', data), true)} onRemove={() => updateSample(sample.id, 'image', '')} /></div>
       <Field label="اسم الخامة" value={sample.name} onChange={value => updateSample(sample.id, 'name', value)} />
       <div className="two-fields"><Field label="المورد" value={sample.supplier} onChange={value => updateSample(sample.id, 'supplier', value)} /><Field label="الكود" value={sample.code} onChange={value => updateSample(sample.id, 'code', value)} /></div>
       <div className="two-fields"><Field label="اللون" value={sample.color} onChange={value => updateSample(sample.id, 'color', value)} /><Field label="الاستخدام" value={sample.use} onChange={value => updateSample(sample.id, 'use', value)} /></div>
