@@ -2,7 +2,16 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { sessions, users } from "../../db/schema";
 
-export type Role = "engineer" | "factory";
+export type Role = "engineer" | "factory" | "accountant";
+
+export const ROLE_LABELS: Record<Role, string> = {
+  engineer: "قسم المهندس",
+  factory: "قسم المصنع",
+  accountant: "قسم المحاسبة",
+};
+
+export const isRole = (value: unknown): value is Role =>
+  value === "engineer" || value === "factory" || value === "accountant";
 
 export type SessionUser = {
   id: number;

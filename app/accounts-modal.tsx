@@ -19,7 +19,7 @@ export function AccountsModal({ onClose }: { onClose: () => void }) {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'engineer' | 'factory'>('factory');
+  const [role, setRole] = useState<'engineer' | 'factory' | 'accountant'>('factory');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -44,7 +44,7 @@ export function AccountsModal({ onClose }: { onClose: () => void }) {
     <div className="modal-head"><div><span className="eyebrow">الوصول</span><h2>إدارة حسابات الدخول</h2></div><button onClick={onClose}><X size={19} /></button></div>
     <div className="accounts-body">
       <div className="accounts-list">
-        {list.map(item => <div className="account-row" key={item.id}><span className={`role-pill ${item.role}`}>{item.role === 'engineer' ? 'مهندس' : 'مصنع'}</span><div><strong>{item.displayName}</strong><small>{item.username}</small></div><button className="icon-button" onClick={() => remove(item.id)}><Trash2 size={15} /></button></div>)}
+        {list.map(item => <div className="account-row" key={item.id}><span className={`role-pill ${item.role}`}>{item.role === 'engineer' ? 'مهندس' : item.role === 'accountant' ? 'محاسب' : 'مصنع'}</span><div><strong>{item.displayName}</strong><small>{item.username}</small></div><button className="icon-button" onClick={() => remove(item.id)}><Trash2 size={15} /></button></div>)}
         {list.length === 0 && <p className="empty-state">لا توجد حسابات إضافية بعد.</p>}
       </div>
       <div className="divider" />
@@ -55,7 +55,7 @@ export function AccountsModal({ onClose }: { onClose: () => void }) {
       </div>
       <div className="two-fields">
         <label className="field"><span>كلمة المرور</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-        <label className="field"><span>نوع الحساب</span><select value={role} onChange={e => setRole(e.target.value as 'engineer' | 'factory')}><option value="factory">مصنع</option><option value="engineer">مهندس</option></select></label>
+        <label className="field"><span>نوع الحساب</span><select value={role} onChange={e => setRole(e.target.value as 'engineer' | 'factory' | 'accountant')}><option value="factory">مصنع</option><option value="engineer">مهندس</option><option value="accountant">محاسب</option></select></label>
       </div>
       {error && <p className="auth-error">{error}</p>}
       <button className="add-page-button wide" disabled={busy} onClick={create}><UserPlus size={15} /> إنشاء الحساب</button>

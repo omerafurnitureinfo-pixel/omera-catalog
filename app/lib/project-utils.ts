@@ -54,9 +54,45 @@ export type ProjectSummary = {
   dueDate: string | null;
   completionPercent: number;
   completionUpdatedAt: string | null;
+  totalAmount: number | null;
+  paidAmount: number | null;
+  paymentUpdatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+/* ---------------- السداد وتنبيهات المطالبة ---------------- */
+
+// نسبة السداد محسوبة دائمًا من المبلغين (لا تُخزَّن) حتى لا تتعارض القيم.
+export function paymentPercent(p: { totalAmount: number | null; paidAmount: number | null }): number | null {
+  if (!p.totalAmount || p.totalAmount <= 0) return null;
+  const paid = p.paidAmount ?? 0;
+  return Math.max(0, Math.min(100, Math.round((paid / p.totalAmount) * 100)));
+}
+
+export function remainingAmount(p: { totalAmount: number | null; paidAmount: number | null }): number | null {
+  if (p.totalAmount == null) return null;
+  return Math.max(0, p.totalAmount - (p.paidAmount ?? 0));
+}
+
+export const formatAmount = (value: number | null) =>
+  value == null ? "—" : `${value.toLocaleString("ar-SA", { maximumFractionDigits: 2 })} ر.س`;
+
+// عتبات مطالبة العميل: عند بلوغ نسبة الإنجاز من المصنع هذه النسب يُنبَّه
+// المحاسب لمطالبة العميل بباقي المبلغ. 95% هو التحذير الأخير.
+export const PAYMENT_ALERT_THRESHOLDS = [75, 90, 95] as const;
+export type PaymentAlert = { threshold: number; level: "info" | "warn" | "final"; text: string };
+
+// التنبيه يظهر فقط إذا لم يكتمل السداد بعد — اكتمال السداد يُلغي المطالبة.
+export function paymentAlertFor(p: { completionPercent: number; totalAmount: number | null; paidAmount: number | null }): PaymentAlert | null {
+  const paidPct = paymentPercent(p);
+  if (paidPct !== null && paidPct >= 100) return null;
+  const reached = PAYMENT_ALERT_THRESHOLDS.filter(t => p.completionPercent >= t).pop();
+  if (!reached) return null;
+  if (reached === 95) return { threshold: 95, level: "final", text: "تحذير أخير: الإنجاز بلغ 95% — يجب تحصيل باقي المبلغ قبل التسليم." };
+  if (reached === 90) return { threshold: 90, level: "warn", text: "الإنجاز بلغ 90% — طالب العميل بباقي المبلغ." };
+  return { threshold: 75, level: "info", text: "الإنجاز بلغ 75% — ابدأ مطالبة العميل بباقي المبلغ." };
+}
 
 // المراحل التي يظهر عندها المشروع لقسم المصنع (من الاعتماد فصاعدًا).
 const FACTORY_VISIBLE_STATUSES: ProjectStatus[] = ["approved", "in_progress", "completed", "delivered"];

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { users } from "../../../../db/schema";
-import { verifyPassword, createSession, sessionCookieHeader } from "../../../lib/auth";
+import { verifyPassword, createSession, sessionCookieHeader, isRole, ROLE_LABELS, Role } from "../../../lib/auth";
 import { toRouteErrorMessage } from "../../../lib/db-error";
 
 export async function POST(request: Request) {
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as { username?: string; password?: string; role?: string };
     const username = (payload.username ?? "").trim();
     const password = payload.password ?? "";
-    const expectedRole = payload.role === "factory" ? "factory" : payload.role === "engineer" ? "engineer" : null;
+    const expectedRole = isRole(payload.role) ? payload.role : null;
 
     if (!username || !password || !expectedRole) {
       return Response.json({ error: "أدخل اسم المستخدم وكلمة المرور" }, { status: 400 });
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" }, { status: 401 });
     }
     if (user.role !== expectedRole) {
-      const roleName = user.role === "engineer" ? "قسم المهندس" : "قسم المصنع";
+      const roleName = ROLE_LABELS[user.role as Role] ?? user.role;
       return Response.json({ error: `هذا الحساب مخصص لـ ${roleName}. سجّل الدخول من البوابة الصحيحة.` }, { status: 403 });
     }
 

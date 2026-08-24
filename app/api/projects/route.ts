@@ -21,12 +21,16 @@ function summarize(row: typeof projects.$inferSelect) {
     dueDate: row.dueDate,
     completionPercent: row.completionPercent,
     completionUpdatedAt: row.completionUpdatedAt,
+    totalAmount: row.totalAmount,
+    paidAmount: row.paidAmount,
+    paymentUpdatedAt: row.paymentUpdatedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
 }
 
-// المهندس يرى كل المشاريع. المصنع يرى فقط المشاريع من مرحلة "معتمد" فصاعدًا.
+// المهندس يرى كل المشاريع. المصنع والمحاسب يريان المشاريع من مرحلة
+// "معتمد" فصاعدًا فقط.
 export async function GET(request: Request) {
   try {
     const me = await getSessionUserFromRequest(request);
@@ -34,9 +38,9 @@ export async function GET(request: Request) {
 
     const db = getDb();
     const rows =
-      me.role === "factory"
-        ? await db.select().from(projects).where(inArray(projects.status, [...FACTORY_VISIBLE_DB_STATUSES])).orderBy(desc(projects.updatedAt))
-        : await db.select().from(projects).orderBy(desc(projects.updatedAt));
+      me.role === "engineer"
+        ? await db.select().from(projects).orderBy(desc(projects.updatedAt))
+        : await db.select().from(projects).where(inArray(projects.status, [...FACTORY_VISIBLE_DB_STATUSES])).orderBy(desc(projects.updatedAt));
 
     return Response.json({ projects: rows.map(summarize) });
   } catch (error) {

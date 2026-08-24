@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Factory, Ruler, ArrowRight, Loader2 } from "lucide-react";
+import { Factory, Ruler, ArrowRight, Loader2, Wallet } from "lucide-react";
 
-type Role = "engineer" | "factory";
+type Role = "engineer" | "factory" | "accountant";
+
+const ROLE_INFO: Record<Role, { title: string; icon: typeof Ruler }> = {
+  engineer: { title: "دخول قسم المهندس", icon: Ruler },
+  factory: { title: "دخول قسم المصنع", icon: Factory },
+  accountant: { title: "دخول قسم المحاسبة", icon: Wallet },
+};
 
 export default function LoginPage() {
   const [checkingSetup, setCheckingSetup] = useState(true);
@@ -39,7 +45,7 @@ export default function LoginPage() {
         setBusy(false);
         return;
       }
-      window.location.href = role === "factory" ? "/factory" : "/";
+      window.location.href = role === "factory" ? "/factory" : role === "accountant" ? "/accountant" : "/";
     } catch {
       setError("تعذر الاتصال بالخادم");
       setBusy(false);
@@ -72,6 +78,11 @@ export default function LoginPage() {
               <strong>قسم المصنع</strong>
               <span>متابعة المشاريع المعتمدة والتنفيذ</span>
             </button>
+            <button className="role-card" onClick={() => setRole("accountant")}>
+              <Wallet size={26} />
+              <strong>قسم المحاسبة</strong>
+              <span>متابعة السداد ومطالبات العملاء</span>
+            </button>
           </div>
         )}
 
@@ -80,7 +91,7 @@ export default function LoginPage() {
             <button className="back-link" onClick={() => { setRole(null); setError(""); }}>
               <ArrowRight size={14} /> تغيير البوابة
             </button>
-            <div className="role-chip">{role === "engineer" ? <Ruler size={14} /> : <Factory size={14} />} {role === "engineer" ? "دخول قسم المهندس" : "دخول قسم المصنع"}</div>
+            <div className="role-chip">{(() => { const Icon = ROLE_INFO[role].icon; return <Icon size={14} />; })()} {ROLE_INFO[role].title}</div>
             <label className="field"><span>اسم المستخدم</span><input value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} /></label>
             <label className="field"><span>كلمة المرور</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} /></label>
             {error && <p className="auth-error">{error}</p>}

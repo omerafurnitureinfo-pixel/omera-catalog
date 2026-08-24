@@ -5,7 +5,7 @@ import { FilePlus2, Hash, Layers, LayoutTemplate, LogOut, Sparkles, Trash2, User
 import { NotificationsBell } from "./notifications";
 import { AccountsModal } from "./accounts-modal";
 import {
-  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf, isFactoryVisible,
+  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf, isFactoryVisible, paymentPercent,
 } from "./lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
@@ -143,9 +143,21 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
                     <div><dt>موعد الاستلام</dt><dd>{fmtDate(p.dueDate)}</dd></div>
                   </dl>
                   <div className="factory-update-progress">
+                    <span className="progress-caption">الإنجاز</span>
                     <div className="progress-bar"><div className="progress-fill" style={{ width: `${p.completionPercent}%` }} /></div>
                     <strong>{p.completionPercent}%</strong>
                   </div>
+                  {(() => {
+                    const paidPct = paymentPercent(p);
+                    const settled = paidPct !== null && paidPct >= 100;
+                    return (
+                      <div className={`factory-update-progress ${settled ? "is-settled" : ""}`}>
+                        <span className="progress-caption">السداد</span>
+                        <div className="progress-bar"><div className="progress-fill paid" style={{ width: `${paidPct ?? 0}%` }} /></div>
+                        <strong>{paidPct === null ? "—" : settled ? "مسدَّد" : `${paidPct}%`}</strong>
+                      </div>
+                    );
+                  })()}
                 </button>
               ))}
             </div>

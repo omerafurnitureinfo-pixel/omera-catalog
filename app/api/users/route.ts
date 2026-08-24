@@ -1,6 +1,6 @@
 import { getDb } from "../../../db";
 import { users } from "../../../db/schema";
-import { getSessionUserFromRequest, hashPassword } from "../../lib/auth";
+import { getSessionUserFromRequest, hashPassword, isRole } from "../../lib/auth";
 import { toRouteErrorMessage } from "../../lib/db-error";
 
 export async function GET(request: Request) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const username = (payload.username ?? "").trim();
     const password = payload.password ?? "";
     const displayName = (payload.displayName ?? "").trim() || username;
-    const role = payload.role === "factory" ? "factory" : payload.role === "engineer" ? "engineer" : null;
+    const role = isRole(payload.role) ? payload.role : null;
 
     if (!username || username.length < 3) {
       return Response.json({ error: "اسم المستخدم يجب أن يكون 3 أحرف على الأقل" }, { status: 400 });

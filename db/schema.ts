@@ -1,14 +1,14 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // حسابات الدخول: كل حساب له اسم مستخدم وكلمة مرور ودور واحد فقط
-// (engineer = المهندس/المكتب، factory = المصنع).
+// (engineer = المهندس/المكتب، factory = المصنع، accountant = المحاسب).
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   passwordSalt: text("password_salt").notNull(),
-  role: text("role").notNull(), // "engineer" | "factory"
+  role: text("role").notNull(), // "engineer" | "factory" | "accountant"
   displayName: text("display_name").notNull().default(""),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -43,6 +43,11 @@ export const projects = sqliteTable("projects", {
   dueDate: text("due_date"),
   completionPercent: integer("completion_percent").notNull().default(0),
   completionUpdatedAt: text("completion_updated_at"),
+  // بيانات السداد — يحدّدها المحاسب وحده. نسبة السداد تُحسب من المبلغين
+  // ولا تُخزَّن حتى لا تتعارض القيمتان.
+  totalAmount: real("total_amount"),
+  paidAmount: real("paid_amount"),
+  paymentUpdatedAt: text("payment_updated_at"),
   createdBy: integer("created_by"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
