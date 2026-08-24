@@ -4,22 +4,37 @@ import { projects } from "../../../../../db/schema";
 import { logActivity } from "../../../../lib/activity";
 import { getSessionUserFromRequest } from "../../../../lib/auth";
 import { toRouteErrorMessage } from "../../../../lib/db-error";
-import { isProjectStatus, STATUS_LABELS } from "../../../../lib/project-utils";
+import { ENGINEER_STATUSES, FACTORY_STATUSES, isProjectStatus, STATUS_LABELS } from "../../../../lib/project-utils";
 
-// المهندس فقط يملك صلاحية تغيير مرحلة المشروع (اعتماد أو تراجع) في أي وقت.
-// عند الرجوع لمرحلة قبل "معتمد"، يختفي المشروع فورًا من شاشة المصنع
-// (يُفلتر في GET /api/projects) لكن كل بيانات التنفيذ (التواريخ ونسبة
-// الإنجاز) تبقى محفوظة ليمكن استكمالها عند إعادة الاعتماد.
+// تقسيم الصلاحيات:
+// - المهندس: يعتمد الملف أو يتراجع عن الاعتماد فقط (review <-> approved).
+//   وعند الاعتماد يُسجَّل تاريخ البداية تلقائيًا بتاريخ اليوم على الخادم.
+// - المصنع: يحرّك مراحل التنفيذ (معتمد/تحت التنفيذ/مكتمل/تم التسليم)
+//   ويحدّد تاريخ التسليم المتوقع.
+// عند رجوع المهندس لمرحلة "قيد المراجعة" يختفي المشروع فورًا من شاشة المصنع
+// (يُفلتر في GET /api/projects) لكن كل بيانات التنفيذ تبقى محفوظة.
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const me = await getSessionUserFromRequest(request);
-    if (!me || me.role !== "engineer") {
-      return Response.json({ error: "تغيير مرحلة المشروع متاح لحساب المهندس فقط" }, { status: 403 });
-    }
+    if (!me) return Response.json({ error: "الرجاء تسجيل الدخول" }, { status: 401 });
+
     const { id } = await context.params;
-    const payload = (await request.json()) as { status: string; startDate?: string | null; dueDate?: string | null };
+    const payload = (await request.json()) as { status: string; dueDate?: string | null };
     if (!isProjectStatus(payload.status)) {
       return Response.json({ error: "مرحلة غير معروفة" }, { status: 400 });
+    }
+
+    const isEngineer = me.role === "engineer";
+    const allowed = isEngineer ? ENGINEER_STATUSES : FACTORY_STATUSES;
+    if (!allowed.includes(payload.status)) {
+      return Response.json({
+        error: isEngineer
+          ? "حساب المهندس يعتمد المشروع أو يتراجع عن الاعتماد فقط — مراحل التنفيذ يحدّدها المصنع."
+          : "حساب المصنع يحدّد مراحل التنفيذ فقط — الاعتماد والتراجع عنه من صلاحية المهندس.",
+      }, { status: 403 });
+    }
+    if (isEngineer && payload.dueDate !== undefined) {
+      return Response.json({ error: "تاريخ التسليم المتوقع يحدّده المصنع." }, { status: 403 });
     }
 
     const db = getDb();
@@ -28,8 +43,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     const now = new Date().toISOString();
     const updates: Record<string, unknown> = { updatedAt: now, status: payload.status, statusUpdatedAt: now };
-    if (payload.startDate !== undefined) updates.startDate = payload.startDate || null;
-    if (payload.dueDate !== undefined) updates.dueDate = payload.dueDate || null;
+    // اعتماد المهندس = تسليم الملف للمصنع، فيُسجَّل تاريخ اليوم تلقائيًا.
+    if (isEngineer && payload.status === "approved") {
+      updates.startDate = now.slice(0, 10);
+    }
+    if (!isEngineer && payload.dueDate !== undefined) updates.dueDate = payload.dueDate || null;
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     if (!updated) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });

@@ -12,7 +12,7 @@ import {
 } from './catalog-types';
 import { CatalogPageView, Field, ImagePlaceholder } from './catalog-view';
 import { NotificationsBell } from './notifications';
-import { STEPPER_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
+import { ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
 import { Dashboard } from './dashboard';
 
 type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' };
@@ -395,25 +395,21 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
 }) {
   const coverPage = pages.find(p => p.kind === 'cover');
   const [clientName, setClientName] = useState(coverPage?.fields.client ?? status.clientName ?? '');
-  const [stage, setStage] = useState<ProjectStatus>(status.status);
-  const [startDate, setStartDate] = useState(status.startDate ?? '');
-  const [dueDate, setDueDate] = useState(status.dueDate ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const requiresDates = stage !== 'draft' && stage !== 'review';
+  const isApproved = isFactoryVisible(status.status);
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('ar-SA') : '—';
 
-  const save = async () => {
+  // المهندس يعتمد الملف أو يتراجع فقط. باقي المراحل والتاريخ المتوقع
+  // يحدّدها المصنع، وتظهر هنا للاطلاع فقط.
+  const setApproval = async (approve: boolean) => {
     setError('');
-    if (requiresDates && (!startDate || !dueDate)) {
-      setError('حدد تاريخ البداية وتاريخ التسليم المتوقع عند الاعتماد أو ما بعده');
-      return;
-    }
     setBusy(true);
     try {
       onClientNameChange(clientName);
       const data = await api<{ project: ProjectSummary }>(`/api/projects/${projectId}/status`, {
         method: 'POST',
-        body: JSON.stringify({ status: stage, startDate, dueDate }),
+        body: JSON.stringify({ status: approve ? 'approved' : 'review' }),
       });
       onUpdated({ ...status, ...data.project });
       onClose();
@@ -424,24 +420,33 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
     }
   };
 
+  const saveClientOnly = () => { onClientNameChange(clientName); onClose(); };
+
   return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal approval-modal" onClick={e => e.stopPropagation()}>
-    <div className="modal-head"><div><span className="eyebrow">إدارة المشروع</span><h2>مرحلة المشروع وبيانات العميل</h2></div><button onClick={onClose}><X size={19} /></button></div>
+    <div className="modal-head"><div><span className="eyebrow">إدارة المشروع</span><h2>اعتماد المشروع وبيانات العميل</h2></div><button onClick={onClose}><X size={19} /></button></div>
     <div className="approval-body">
       {!coverPage && <p className="approval-warning">لا توجد صفحة غلاف في هذا المشروع بعد — أضف صفحة غلاف حتى يظهر اسم العميل في المقدمة.</p>}
       <Field label="اسم العميل (مرتبط بصفحة الغلاف)" value={clientName} onChange={setClientName} />
-      <p className="section-label">مرحلة المشروع</p>
-      <div className="status-stepper">
-        {STEPPER_STATUSES.map((value, index) => <button key={value} type="button" className={`status-step ${stage === value ? 'active' : ''} ${STEPPER_STATUSES.indexOf(stage as typeof STEPPER_STATUSES[number]) >= index ? 'passed' : ''}`} onClick={() => setStage(value)}>
-          <span className="status-step-dot">{index + 1}</span><span>{STATUS_LABELS[value]}</span>
-        </button>)}
+
+      <p className="section-label">الاعتماد</p>
+      <div className="approval-switch-row">
+        <div>
+          <strong>{isApproved ? 'الملف معتمد ومُسلَّم للمصنع' : 'الملف غير معتمد بعد'}</strong>
+          <span>{isApproved
+            ? 'المصنع يستلم الملف ويحدّد مراحل التنفيذ وتاريخ التسليم المتوقع. يمكنك التراجع عن الاعتماد في أي وقت وتبقى كل البيانات محفوظة.'
+            : 'عند الاعتماد يظهر الملف للمصنع ويُسجَّل تاريخ التسليم للمصنع بتاريخ اليوم تلقائيًا.'}</span>
+        </div>
+        <button className={`switch ${isApproved ? 'on' : ''}`} disabled={busy} onClick={() => setApproval(!isApproved)} aria-pressed={isApproved}><span /></button>
       </div>
-      <p className="approval-hint">يمكنك الرجوع لمرحلة سابقة في أي وقت — سيختفي المشروع من شاشة المصنع تلقائيًا قبل مرحلة "معتمد"، وتبقى كل بياناته محفوظة.</p>
-      <div className="two-fields">
-        <label className="field"><span>تاريخ البداية</span><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} disabled={!requiresDates} /></label>
-        <label className="field"><span>تاريخ التسليم المتوقع</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={!requiresDates} /></label>
+
+      <p className="section-label">متابعة التنفيذ (يحدّثها المصنع)</p>
+      <div className="factory-readout">
+        <div><span>المرحلة الحالية</span><strong className={`status-pill status-${status.status}`}>{STATUS_LABELS[status.status]}</strong></div>
+        <div><span>تاريخ التسليم للمصنع</span><strong>{fmt(status.startDate)}</strong></div>
+        <div><span>تاريخ التسليم المتوقع</span><strong>{fmt(status.dueDate)}</strong></div>
       </div>
       <div className="approval-progress-readout">
-        <span>نسبة الإنجاز الحالية (يحدّثها المصنع)</span>
+        <span>نسبة الإنجاز الحالية</span>
         <div className="progress-bar"><div className="progress-fill" style={{ width: `${status.completionPercent}%` }} /></div>
         <strong>{status.completionPercent}%</strong>
       </div>
@@ -450,7 +455,7 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
       <p className="section-label">سجل النشاط</p>
       <ActivityLog projectId={projectId} />
     </div>
-    <div className="modal-foot"><span className="approval-hint">{status.statusUpdatedAt ? `آخر تحديث للمرحلة: ${new Date(status.statusUpdatedAt).toLocaleString('ar-SA')}` : 'لم تُحدَّث المرحلة بعد'}</span><button className="primary-button" disabled={busy} onClick={save}>{busy ? 'جارٍ الحفظ...' : 'حفظ'}</button></div>
+    <div className="modal-foot"><span className="approval-hint">{status.statusUpdatedAt ? `آخر تحديث للمرحلة: ${new Date(status.statusUpdatedAt).toLocaleString('ar-SA')}` : 'لم تُحدَّث المرحلة بعد'}</span><button className="primary-button" disabled={busy} onClick={saveClientOnly}>حفظ وإغلاق</button></div>
   </div></div>;
 }
 

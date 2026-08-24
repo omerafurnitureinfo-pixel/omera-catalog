@@ -23,6 +23,11 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 // المراحل المعروضة فعليًا في شريط "مرحلة المشروع" بالواجهة.
 export const STEPPER_STATUSES = ["review", "approved", "in_progress", "completed", "delivered"] as const;
 
+// تقسيم الصلاحيات: المهندس يعتمد الملف فقط (أو يتراجع عن الاعتماد)، بينما
+// المصنع هو من يحرّك مراحل التنفيذ ويحدد تاريخ التسليم المتوقع.
+export const ENGINEER_STATUSES: ProjectStatus[] = ["review", "approved"];
+export const FACTORY_STATUSES: ProjectStatus[] = ["approved", "in_progress", "completed", "delivered"];
+
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: "مسودة",
   review: "قيد المراجعة",

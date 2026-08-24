@@ -5,7 +5,7 @@ import { ArrowRight, Factory, LogOut, Printer, Sparkles } from "lucide-react";
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
-import { ProjectSummary, STATUS_LABELS, dueDateInfo } from "../lib/project-utils";
+import { FACTORY_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, dueDateInfo } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
@@ -70,6 +70,21 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     }
   };
 
+  // المصنع هو من يحرّك مراحل التنفيذ ويحدّد تاريخ التسليم المتوقع.
+  const updateStage = async (id: string, status: ProjectStatus, dueDate?: string | null) => {
+    setError("");
+    try {
+      const body: Record<string, unknown> = { status };
+      if (dueDate !== undefined) body.dueDate = dueDate;
+      const data = await api<{ project: ProjectSummary }>(`/api/projects/${id}/status`, { method: "POST", body: JSON.stringify(body) });
+      setProjects((list) => list.map((p) => (p.id === id ? { ...p, ...data.project } : p)));
+      if (openProject?.id === id) setOpenProject((p) => (p ? { ...p, ...data.project } : p));
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "تعذر تحديث مرحلة المشروع");
+      load();
+    }
+  };
+
   const logout = async () => {
     await api("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
@@ -107,10 +122,18 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                     {p.clientName && <span className="factory-client">العميل: {p.clientName}{p.clientNumber ? ` #${p.clientNumber}` : ''}</span>}
                   </div>
                   <div className="factory-dates">
-                    <div><span>تاريخ البداية</span><strong>{p.startDate ? new Date(p.startDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
-                    <div><span>التسليم المتوقع</span><strong>{p.dueDate ? new Date(p.dueDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
+                    <div><span>تاريخ الاستلام من المهندس</span><strong>{p.startDate ? new Date(p.startDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
+                    <label className="field factory-due-field"><span>التسليم المتوقع</span>
+                      <input type="date" value={p.dueDate ?? ""} onChange={(e) => updateStage(p.id, p.status, e.target.value || null)} />
+                    </label>
                   </div>
                   <span className={`remaining-pill tone-${remaining.tone}`}>{remaining.text}</span>
+
+                  <label className="field factory-stage-field"><span>مرحلة التنفيذ</span>
+                    <select value={p.status} onChange={(e) => updateStage(p.id, e.target.value as ProjectStatus)}>
+                      {FACTORY_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                    </select>
+                  </label>
 
                   <div className="progress-edit">
                     <div className="progress-bar"><div className="progress-fill" style={{ width: `${p.completionPercent}%` }} /></div>

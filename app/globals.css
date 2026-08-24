@@ -184,6 +184,19 @@
 .dash-row-action{flex:0 0 auto;width:26px;height:26px;border-radius:5px;display:grid;place-items:center;color:#8e877d;background:#f1eee9;border:1px solid #e4ddd4}
 .dash-row-action:hover{border-color:#bda27f;color:#8d6d4c}
 .dash-row-action.danger:hover{border-color:#d9a49c;color:#a6453a;background:#f9eeec}
+
+/* قراءة بيانات المصنع داخل نافذة المهندس (عرض فقط) */
+.factory-readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid #e6dfd5;border-bottom:1px solid #e6dfd5;padding:12px 0;margin-bottom:12px}
+.factory-readout>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.factory-readout span{font-size:9.5px;color:#a08363}
+.factory-readout strong{font-size:12px;color:#4a4640}
+.factory-readout strong.status-pill{align-self:flex-start;font-size:9.5px}
+@media(max-width:640px){.factory-readout{grid-template-columns:1fr}}
+
+/* عناصر تحكم المصنع في البطاقة */
+.factory-due-field,.factory-stage-field{margin:0}
+.factory-due-field>span,.factory-stage-field>span{font-size:9.5px;color:#a08363;margin-bottom:3px}
+.factory-due-field input,.factory-stage-field select{min-height:29px;font-size:11px}
 .dash-project-row-main span{font-size:9.5px;color:#8e877d}
 .dashboard-recent{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:16px 18px}
 .dashboard-recent .section-label button{background:#f1eee9;border:1px solid #e4ddd4;border-radius:20px;padding:3px 10px}
