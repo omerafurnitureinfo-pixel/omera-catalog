@@ -47,12 +47,14 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       return Response.json({ error: "تعديل المشروع متاح لحساب المهندس فقط" }, { status: 403 });
     }
     const { id } = await context.params;
-    const payload = (await request.json()) as { name?: string; data?: unknown; clientNumber?: number | null };
+    const payload = (await request.json()) as { name?: string; data?: unknown; clientNumber?: number | null; dueDate?: string | null };
     const db = getDb();
     const now = new Date().toISOString();
 
     const updates: Record<string, unknown> = { updatedAt: now };
     if (payload.name !== undefined) updates.name = payload.name;
+    // تاريخ التسليم المتوقع من صلاحية المهندس (هذا المسار للمهندس فقط).
+    if (payload.dueDate !== undefined) updates.dueDate = payload.dueDate || null;
     if (payload.clientNumber !== undefined) {
       if (payload.clientNumber === null || payload.clientNumber === ("" as unknown)) {
         updates.clientNumber = null;
@@ -79,7 +81,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     if (!updated) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });
-    return Response.json({ project: { id: updated.id, name: updated.name, clientName: updated.clientName, clientNumber: updated.clientNumber, updatedAt: updated.updatedAt } });
+    return Response.json({ project: { id: updated.id, name: updated.name, clientName: updated.clientName, clientNumber: updated.clientNumber, dueDate: updated.dueDate, updatedAt: updated.updatedAt } });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });
   }

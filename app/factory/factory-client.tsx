@@ -70,13 +70,11 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     }
   };
 
-  // المصنع هو من يحرّك مراحل التنفيذ ويحدّد تاريخ التسليم المتوقع.
-  const updateStage = async (id: string, status: ProjectStatus, dueDate?: string | null) => {
+  // المصنع يحرّك مراحل التنفيذ فقط؛ التواريخ يحدّدها المهندس.
+  const updateStage = async (id: string, status: ProjectStatus) => {
     setError("");
     try {
-      const body: Record<string, unknown> = { status };
-      if (dueDate !== undefined) body.dueDate = dueDate;
-      const data = await api<{ project: ProjectSummary }>(`/api/projects/${id}/status`, { method: "POST", body: JSON.stringify(body) });
+      const data = await api<{ project: ProjectSummary }>(`/api/projects/${id}/status`, { method: "POST", body: JSON.stringify({ status }) });
       setProjects((list) => list.map((p) => (p.id === id ? { ...p, ...data.project } : p)));
       if (openProject?.id === id) setOpenProject((p) => (p ? { ...p, ...data.project } : p));
     } catch (e) {
@@ -123,9 +121,7 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                   </div>
                   <div className="factory-dates">
                     <div><span>تاريخ الاستلام من المهندس</span><strong>{p.startDate ? new Date(p.startDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
-                    <label className="field factory-due-field"><span>التسليم المتوقع</span>
-                      <input type="date" value={p.dueDate ?? ""} onChange={(e) => updateStage(p.id, p.status, e.target.value || null)} />
-                    </label>
+                    <div><span>التسليم المتوقع</span><strong>{p.dueDate ? new Date(p.dueDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
                   </div>
                   <span className={`remaining-pill tone-${remaining.tone}`}>{remaining.text}</span>
 

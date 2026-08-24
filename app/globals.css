@@ -164,6 +164,17 @@
 .section-label-title{display:flex;align-items:center;gap:5px}
 .dashboard-feed{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:16px 18px}
 .factory-feed-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.factory-update-card{flex:0 0 auto;width:265px;text-align:right;background:#f3efe9;border:1px solid #e2dbd2;border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px}
+.factory-update-card:hover{border-color:#bda27f}
+.factory-update-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.factory-update-head strong{font-size:12.5px;color:#3a3733;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.factory-update-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0}
+.factory-update-grid>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.factory-update-grid dt{font-size:8.5px;color:#a08363}
+.factory-update-grid dd{margin:0;font-size:10.5px;color:#4a4640;font-family:Inter,sans-serif}
+.factory-update-progress{display:flex;align-items:center;gap:8px}
+.factory-update-progress .progress-bar{flex:1}
+.factory-update-progress strong{font-size:11px;color:#4a4640;font-family:Inter,sans-serif}
 .factory-feed-item{flex:0 0 auto;min-width:220px;max-width:260px;text-align:right;background:#f3efe9;border:1px solid #e2dbd2;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
 .factory-feed-item:hover{border-color:#bda27f}
 .factory-feed-item strong{font-size:12px;color:#3a3733}

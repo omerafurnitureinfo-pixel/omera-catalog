@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FilePlus2, Hash, Layers, LayoutTemplate, LogOut, Sparkles, Trash2, Users } from "lucide-react";
 import { NotificationsBell } from "./notifications";
 import { AccountsModal } from "./accounts-modal";
 import {
-  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf,
+  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf, isFactoryVisible,
 } from "./lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
-type FactoryUpdate = { id: number; projectId: string; projectName: string; userDisplayName: string; details: string | null; createdAt: string };
 
 async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options?.headers || {}) } });
@@ -19,6 +18,7 @@ async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> 
 }
 
 const GROUP_ORDER: DashboardGroup[] = ["pending", "active", "delivered"];
+const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString("ar-SA") : "—");
 
 function ProjectRow({ project, onOpen, onEditCode, onDelete }: {
   project: ProjectSummary;
@@ -63,10 +63,8 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
   onShowAll: () => void;
   onProjectsChanged: () => void;
 }) {
-  const [feed, setFeed] = useState<FactoryUpdate[]>([]);
   const [showAccounts, setShowAccounts] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { api<{ updates: FactoryUpdate[] }>("/api/activity").then(d => setFeed(d.updates)).catch(() => undefined); }, []);
 
   const createProject = () => {
     const clientName = window.prompt("اسم العميل للمشروع الجديد:");
@@ -101,6 +99,14 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
   for (const p of projects) grouped[dashboardGroupOf(p.status)].push(p);
   const recent = [...projects].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)).slice(0, 6);
 
+  // بطاقة واحدة فقط لكل مشروع تحمل آخر وضع عند المصنع (بدل تكرار كل حدث)،
+  // مرتّبة بالأحدث حسب آخر لمسة من المصنع.
+  const lastFactoryTouch = (p: ProjectSummary) =>
+    [p.completionUpdatedAt, p.statusUpdatedAt].filter(Boolean).sort().pop() ?? "";
+  const factoryUpdates = projects
+    .filter(p => isFactoryVisible(p.status))
+    .sort((a, b) => (lastFactoryTouch(a) < lastFactoryTouch(b) ? 1 : -1));
+
   return (
     <div className="app-shell dashboard-shell" dir="rtl">
       <header className="topbar no-print">
@@ -122,14 +128,24 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
 
         <section className="dashboard-feed">
           <p className="section-label"><span className="section-label-title"><Layers size={13} /> تحديثات المصنع</span></p>
-          {feed.length === 0 && <p className="empty-state">لا توجد تحديثات من المصنع بعد. تظهر هنا فور تحديث المصنع لنسبة إنجاز أي مشروع.</p>}
-          {feed.length > 0 && (
+          {factoryUpdates.length === 0 && <p className="empty-state">لا توجد تحديثات من المصنع بعد. يظهر هنا آخر وضع لكل مشروع بعد اعتماده.</p>}
+          {factoryUpdates.length > 0 && (
             <div className="factory-feed-list">
-              {feed.map(entry => (
-                <button className="factory-feed-item" key={entry.id} onClick={() => onOpenProject(entry.projectId)}>
-                  <strong>{entry.projectName}</strong>
-                  <span>{entry.userDisplayName} حدّث نسبة الإنجاز إلى {entry.details}</span>
-                  <small>{new Date(entry.createdAt).toLocaleString("ar-SA")}</small>
+              {factoryUpdates.map(p => (
+                <button className="factory-update-card" key={p.id} onClick={() => onOpenProject(p.id)}>
+                  <div className="factory-update-head">
+                    <strong>{p.clientName?.trim() || p.name}</strong>
+                    <span className={`status-pill status-${p.status}`}>{STATUS_LABELS[p.status]}</span>
+                  </div>
+                  <dl className="factory-update-grid">
+                    <div><dt>كود العميل</dt><dd>{p.clientNumber ?? "—"}</dd></div>
+                    <div><dt>تسليم المصنع</dt><dd>{fmtDate(p.startDate)}</dd></div>
+                    <div><dt>موعد الاستلام</dt><dd>{fmtDate(p.dueDate)}</dd></div>
+                  </dl>
+                  <div className="factory-update-progress">
+                    <div className="progress-bar"><div className="progress-fill" style={{ width: `${p.completionPercent}%` }} /></div>
+                    <strong>{p.completionPercent}%</strong>
+                  </div>
                 </button>
               ))}
             </div>

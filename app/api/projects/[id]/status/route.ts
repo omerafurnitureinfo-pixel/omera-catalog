@@ -10,7 +10,7 @@ import { ENGINEER_STATUSES, FACTORY_STATUSES, isProjectStatus, STATUS_LABELS } f
 // - المهندس: يعتمد الملف أو يتراجع عن الاعتماد فقط (review <-> approved).
 //   وعند الاعتماد يُسجَّل تاريخ البداية تلقائيًا بتاريخ اليوم على الخادم.
 // - المصنع: يحرّك مراحل التنفيذ (معتمد/تحت التنفيذ/مكتمل/تم التسليم)
-//   ويحدّد تاريخ التسليم المتوقع.
+//   فقط (تاريخ التسليم المتوقع يحدّده المهندس عبر PUT /api/projects/[id]).
 // عند رجوع المهندس لمرحلة "قيد المراجعة" يختفي المشروع فورًا من شاشة المصنع
 // (يُفلتر في GET /api/projects) لكن كل بيانات التنفيذ تبقى محفوظة.
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -19,7 +19,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!me) return Response.json({ error: "الرجاء تسجيل الدخول" }, { status: 401 });
 
     const { id } = await context.params;
-    const payload = (await request.json()) as { status: string; dueDate?: string | null };
+    const payload = (await request.json()) as { status: string };
     if (!isProjectStatus(payload.status)) {
       return Response.json({ error: "مرحلة غير معروفة" }, { status: 400 });
     }
@@ -33,9 +33,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           : "حساب المصنع يحدّد مراحل التنفيذ فقط — الاعتماد والتراجع عنه من صلاحية المهندس.",
       }, { status: 403 });
     }
-    if (isEngineer && payload.dueDate !== undefined) {
-      return Response.json({ error: "تاريخ التسليم المتوقع يحدّده المصنع." }, { status: 403 });
-    }
 
     const db = getDb();
     const [existing] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
@@ -47,7 +44,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (isEngineer && payload.status === "approved") {
       updates.startDate = now.slice(0, 10);
     }
-    if (!isEngineer && payload.dueDate !== undefined) updates.dueDate = payload.dueDate || null;
 
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     if (!updated) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });

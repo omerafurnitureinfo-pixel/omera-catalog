@@ -395,13 +395,15 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
 }) {
   const coverPage = pages.find(p => p.kind === 'cover');
   const [clientName, setClientName] = useState(coverPage?.fields.client ?? status.clientName ?? '');
+  const [clientNumber, setClientNumber] = useState(status.clientNumber ? String(status.clientNumber) : '');
+  const [dueDate, setDueDate] = useState(status.dueDate ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const isApproved = isFactoryVisible(status.status);
   const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString('ar-SA') : '—';
 
-  // المهندس يعتمد الملف أو يتراجع فقط. باقي المراحل والتاريخ المتوقع
-  // يحدّدها المصنع، وتظهر هنا للاطلاع فقط.
+  // المهندس يعتمد الملف أو يتراجع فقط. مراحل التنفيذ ونسبة الإنجاز
+  // يحدّدها المصنع وتظهر هنا للاطلاع فقط.
   const setApproval = async (approve: boolean) => {
     setError('');
     setBusy(true);
@@ -420,20 +422,46 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
     }
   };
 
-  const saveClientOnly = () => { onClientNameChange(clientName); onClose(); };
+  // كود العميل وتاريخ التسليم المتوقع من صلاحية المهندس، ويُحفظان معًا.
+  const saveDetails = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      onClientNameChange(clientName);
+      const body: Record<string, unknown> = { dueDate: dueDate || null };
+      const trimmed = clientNumber.trim();
+      if (trimmed === '') body.clientNumber = null;
+      else {
+        const parsed = Number(trimmed);
+        if (!Number.isInteger(parsed) || parsed <= 0) { setError('كود العميل يجب أن يكون رقمًا صحيحًا موجبًا'); setBusy(false); return; }
+        body.clientNumber = parsed;
+      }
+      const data = await api<{ project: ProjectSummary }>(`/api/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(body) });
+      onUpdated({ ...status, ...data.project });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'تعذر الحفظ');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal approval-modal" onClick={e => e.stopPropagation()}>
     <div className="modal-head"><div><span className="eyebrow">إدارة المشروع</span><h2>اعتماد المشروع وبيانات العميل</h2></div><button onClick={onClose}><X size={19} /></button></div>
     <div className="approval-body">
       {!coverPage && <p className="approval-warning">لا توجد صفحة غلاف في هذا المشروع بعد — أضف صفحة غلاف حتى يظهر اسم العميل في المقدمة.</p>}
-      <Field label="اسم العميل (مرتبط بصفحة الغلاف)" value={clientName} onChange={setClientName} />
+      <div className="two-fields">
+        <Field label="اسم العميل (مرتبط بصفحة الغلاف)" value={clientName} onChange={setClientName} />
+        <Field label="كود العميل" value={clientNumber} onChange={setClientNumber} />
+      </div>
+      <label className="field"><span>تاريخ التسليم المتوقع</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label>
 
       <p className="section-label">الاعتماد</p>
       <div className="approval-switch-row">
         <div>
           <strong>{isApproved ? 'الملف معتمد ومُسلَّم للمصنع' : 'الملف غير معتمد بعد'}</strong>
           <span>{isApproved
-            ? 'المصنع يستلم الملف ويحدّد مراحل التنفيذ وتاريخ التسليم المتوقع. يمكنك التراجع عن الاعتماد في أي وقت وتبقى كل البيانات محفوظة.'
+            ? 'المصنع يستلم الملف ويحدّد مراحل التنفيذ ونسبة الإنجاز. يمكنك التراجع عن الاعتماد في أي وقت وتبقى كل البيانات محفوظة.'
             : 'عند الاعتماد يظهر الملف للمصنع ويُسجَّل تاريخ التسليم للمصنع بتاريخ اليوم تلقائيًا.'}</span>
         </div>
         <button className={`switch ${isApproved ? 'on' : ''}`} disabled={busy} onClick={() => setApproval(!isApproved)} aria-pressed={isApproved}><span /></button>
@@ -455,7 +483,7 @@ function StatusModal({ projectId, status, pages, onClose, onClientNameChange, on
       <p className="section-label">سجل النشاط</p>
       <ActivityLog projectId={projectId} />
     </div>
-    <div className="modal-foot"><span className="approval-hint">{status.statusUpdatedAt ? `آخر تحديث للمرحلة: ${new Date(status.statusUpdatedAt).toLocaleString('ar-SA')}` : 'لم تُحدَّث المرحلة بعد'}</span><button className="primary-button" disabled={busy} onClick={saveClientOnly}>حفظ وإغلاق</button></div>
+    <div className="modal-foot"><span className="approval-hint">{status.statusUpdatedAt ? `آخر تحديث للمرحلة: ${new Date(status.statusUpdatedAt).toLocaleString('ar-SA')}` : 'لم تُحدَّث المرحلة بعد'}</span><button className="primary-button" disabled={busy} onClick={saveDetails}>{busy ? 'جارٍ الحفظ...' : 'حفظ وإغلاق'}</button></div>
   </div></div>;
 }
 
