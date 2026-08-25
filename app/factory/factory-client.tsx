@@ -5,7 +5,7 @@ import { ArrowRight, Factory, LogOut, Printer, Sparkles } from "lucide-react";
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
-import { FACTORY_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseStages, stagesToPercent } from "../lib/project-utils";
+import { FACTORY_STATUSES, MATERIAL_STAGES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseMaterials, parseStages, stagesToPercent } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
@@ -59,7 +59,23 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     }
   };
 
-  // تأشير مرحلة يزيد نسبة الإنجاز 25% تلقائيًا (النسبة تُحسب على الخادم).
+  // جدول الخامات للمصنع فقط ولا يمسّ نسبة الإنجاز.
+  const toggleMaterial = async (project: ProjectSummary, key: string, checked: boolean) => {
+    const current = parseMaterials(project.materials);
+    const next = checked ? [...current, key] : current.filter(k => k !== key);
+    const optimistic = { materials: JSON.stringify(next) };
+    setProjects(list => list.map(p => (p.id === project.id ? { ...p, ...optimistic } : p)));
+    if (openProject?.id === project.id) setOpenProject(p => (p ? { ...p, ...optimistic } : p));
+    setError("");
+    try {
+      await api(`/api/projects/${project.id}/materials`, { method: "POST", body: JSON.stringify({ materials: next }) });
+    } catch (e) {
+      setError(e instanceof Error && e.message ? `تعذر حفظ توريد الخامات: ${e.message}` : "تعذر حفظ توريد الخامات، حاول مجددًا");
+      load();
+    }
+  };
+
+  // مراحل النجارة/الدهان/التنجيد فقط تُحتسب في النسبة (تُحسب على الخادم).
   const toggleWorkStage = async (project: ProjectSummary, key: string, checked: boolean) => {
     const current = parseStages(project.stages);
     const next = checked ? [...current, key] : current.filter(k => k !== key);
@@ -141,17 +157,34 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                     </select>
                   </label>
 
-                  <div className="work-stages">
-                    <span className="work-stages-title">مراحل التنفيذ — كل مرحلة 25%</span>
-                    {WORK_STAGES.map((stage) => {
-                      const done = parseStages(p.stages).includes(stage.key);
-                      return (
-                        <label className={`work-stage ${done ? "is-done" : ""}`} key={stage.key}>
-                          <input type="checkbox" checked={done} onChange={(e) => toggleWorkStage(p, stage.key, e.target.checked)} />
-                          <span>{stage.label}</span>
-                        </label>
-                      );
-                    })}
+                  {/* جدولان جنبًا إلى جنب: توريد الخامات (يمينًا، للمصنع فقط)
+                      ومراحل المشروع (يسارًا، تظهر للمهندس والمحاسب). */}
+                  <div className="factory-tables">
+                    <div className="work-stages">
+                      <span className="work-stages-title">توريد الخامات <em>مساعدة داخلية</em></span>
+                      {MATERIAL_STAGES.map((item) => {
+                        const done = parseMaterials(p.materials).includes(item.key);
+                        return (
+                          <label className={`work-stage ${done ? "is-done" : ""}`} key={item.key}>
+                            <input type="checkbox" checked={done} onChange={(e) => toggleMaterial(p, item.key, e.target.checked)} />
+                            <span>{item.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div className="work-stages">
+                      <span className="work-stages-title">مراحل المشروع <em>تؤثر في النسبة</em></span>
+                      {WORK_STAGES.map((stage) => {
+                        const done = parseStages(p.stages).includes(stage.key);
+                        return (
+                          <label className={`work-stage ${done ? "is-done" : ""} ${stage.counted ? "" : "is-uncounted"}`} key={stage.key}>
+                            <input type="checkbox" checked={done} onChange={(e) => toggleWorkStage(p, stage.key, e.target.checked)} />
+                            <span>{stage.label}{stage.counted ? "" : " (خارج النسبة)"}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="progress-edit">

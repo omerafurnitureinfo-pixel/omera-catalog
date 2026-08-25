@@ -20,6 +20,7 @@ function summarize(row: typeof projects.$inferSelect) {
     startDate: row.startDate,
     dueDate: row.dueDate,
     stages: row.stages,
+    materials: row.materials,
     completionPercent: row.completionPercent,
     completionUpdatedAt: row.completionUpdatedAt,
     totalAmount: row.totalAmount,

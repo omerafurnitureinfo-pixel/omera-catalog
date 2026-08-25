@@ -44,6 +44,8 @@ export const projects = sqliteTable("projects", {
   // مراحل التنفيذ الأربع التي يؤشّرها المصنع (JSON array من مفاتيح المراحل).
   // نسبة الإنجاز تُشتق منها: كل مرحلة = 25%.
   stages: text("stages").notNull().default("[]"),
+  // جدول توريد الخامات — لمساعدة المصنع فقط، خارج نسبة الإنجاز.
+  materials: text("materials").notNull().default("[]"),
   completionPercent: integer("completion_percent").notNull().default(0),
   completionUpdatedAt: text("completion_updated_at"),
   // بيانات السداد — يحدّدها المحاسب وحده. نسبة السداد تُحسب من المبلغين

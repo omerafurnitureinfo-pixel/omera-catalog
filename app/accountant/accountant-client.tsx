@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Bell, LogOut, Sparkles, Wallet } from "lucide-react";
 import {
-  PaymentAlert, ProjectSummary, STATUS_LABELS,
-  formatAmount, paymentAlertFor, paymentPercent, remainingAmount,
+  PaymentAlert, ProjectSummary, STATUS_LABELS, WORK_STAGES,
+  formatAmount, parseStages, paymentAlertFor, paymentPercent, remainingAmount,
 } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: string };
@@ -72,6 +72,12 @@ function OrderCard({ project, onSave }: { project: ProjectSummary; onSave: (id: 
           <AlertTriangle size={13} /> {alert.text}
         </p>
       )}
+
+      <div className="stage-chips">
+        {WORK_STAGES.map(stage => (
+          <span key={stage.key} className={`stage-chip ${parseStages(project.stages).includes(stage.key) ? "is-done" : ""}`}>{stage.label}</span>
+        ))}
+      </div>
 
       <div className="accountant-progress">
         <span>نسبة الإنجاز من المصنع</span>

@@ -53,6 +53,7 @@ export type ProjectSummary = {
   startDate: string | null;
   dueDate: string | null;
   stages: string;
+  materials: string;
   completionPercent: number;
   completionUpdatedAt: string | null;
   totalAmount: number | null;
@@ -64,33 +65,51 @@ export type ProjectSummary = {
 
 /* ---------------- مراحل التنفيذ عند المصنع ---------------- */
 
-// أربع مراحل يؤشّرها المصنع، كل واحدة تساوي 25% من نسبة الإنجاز.
+// مراحل المشروع التي يؤشّرها المصنع وتظهر للمهندس والمحاسب.
+// النجارة والدهان والتنجيد فقط هي التي تُحتسب في نسبة الإنجاز (100% ÷ 3)،
+// أما التوريد والتركيب فمرحلتان خارج النسبة (متابعة فقط).
 export const WORK_STAGES = [
-  { key: "carpentry", label: "توريد النجارة" },
-  { key: "paint", label: "توريد الدهان" },
-  { key: "upholstery", label: "توريد التنجيد" },
-  { key: "installation", label: "التركيب" },
+  { key: "carpentry", label: "مرحلة النجارة", counted: true },
+  { key: "paint", label: "مرحلة الدهان", counted: true },
+  { key: "upholstery", label: "مرحلة التنجيد", counted: true },
+  { key: "supply", label: "مرحلة التوريد", counted: false },
+  { key: "installation", label: "مرحلة التركيب", counted: false },
 ] as const;
 
 export type WorkStageKey = (typeof WORK_STAGES)[number]["key"];
 const STAGE_KEYS = WORK_STAGES.map(s => s.key) as readonly string[];
-export const STAGE_PERCENT = 100 / WORK_STAGES.length;
+const COUNTED_STAGE_KEYS = WORK_STAGES.filter(s => s.counted).map(s => s.key) as readonly string[];
 
-// نقرأ المراحل بتساهل (قد تأتي من قاعدة بيانات قديمة أو JSON تالف) ونتجاهل
-// أي مفتاح غير معروف أو مكرر حتى لا تتجاوز النسبة 100%.
-export function parseStages(raw: string | null | undefined): WorkStageKey[] {
+// جدول توريد الخامات — يساعد المصنع في التصنيع ولا يؤثر على النسبة إطلاقًا،
+// ولا يظهر إلا لحساب المصنع.
+export const MATERIAL_STAGES = [
+  { key: "mat_carpentry", label: "توريد خامات النجارة" },
+  { key: "mat_paint", label: "توريد خامات الدهان" },
+  { key: "mat_upholstery", label: "توريد خامات التنجيد" },
+  { key: "mat_installation", label: "توريد خامات التركيب" },
+] as const;
+
+export type MaterialStageKey = (typeof MATERIAL_STAGES)[number]["key"];
+const MATERIAL_KEYS = MATERIAL_STAGES.map(s => s.key) as readonly string[];
+
+// نقرأ القوائم بتساهل (قد تأتي من قاعدة بيانات قديمة أو JSON تالف) ونتجاهل
+// أي مفتاح غير معروف أو مكرر.
+function parseKeys(raw: string | null | undefined, allowed: readonly string[]): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return [...new Set(parsed.filter((k): k is WorkStageKey => typeof k === "string" && STAGE_KEYS.includes(k)))];
+    return [...new Set(parsed.filter((k): k is string => typeof k === "string" && allowed.includes(k)))];
   } catch {
     return [];
   }
 }
 
+export const parseStages = (raw: string | null | undefined) => parseKeys(raw, STAGE_KEYS) as WorkStageKey[];
+export const parseMaterials = (raw: string | null | undefined) => parseKeys(raw, MATERIAL_KEYS) as MaterialStageKey[];
+
 export const stagesToPercent = (stages: readonly string[]) =>
-  Math.round(stages.length * STAGE_PERCENT);
+  Math.round((stages.filter(k => COUNTED_STAGE_KEYS.includes(k)).length / COUNTED_STAGE_KEYS.length) * 100);
 
 /* ---------------- السداد وتنبيهات المطالبة ---------------- */
 

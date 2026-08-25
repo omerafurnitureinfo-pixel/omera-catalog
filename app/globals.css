@@ -100,8 +100,14 @@
 .progress-caption{font-size:9px;color:#a08363;width:38px;flex-shrink:0}
 
 /* ============ مراحل التنفيذ (المصنع) ============ */
-.work-stages{display:flex;flex-direction:column;gap:5px;border-top:1px solid #e6dfd5;padding-top:10px}
-.work-stages-title{font-size:9.5px;color:#a08363;margin-bottom:2px}
+.factory-tables{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.factory-tables{grid-template-columns:1fr}}
+.work-stages{display:flex;flex-direction:column;gap:5px;border-top:1px solid #e6dfd5;padding-top:10px;min-width:0}
+.work-stages-title{font-size:9.5px;color:#a08363;margin-bottom:2px;display:flex;flex-direction:column;gap:2px}
+.work-stages-title em{font-style:normal;font-size:8px;color:#b3aa9d}
+.work-stage.is-uncounted{opacity:.9}
+.work-stage.is-uncounted span{font-size:10.5px}
+.work-stage.is-uncounted.is-done{background:#f1eee8;border-color:#cdb797;color:#8d6d4c}
 .work-stage{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#4a4640;background:#f3f0eb;border:1px solid #e4ddd4;border-radius:5px;padding:7px 9px;cursor:pointer;transition:.15s}
 .work-stage:hover{border-color:#bda27f}
 .work-stage input{width:15px;height:15px;accent-color:#5f8b52;flex-shrink:0;cursor:pointer}
