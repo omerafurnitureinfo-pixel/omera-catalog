@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `stages` text DEFAULT '[]' NOT NULL;

@@ -5,7 +5,7 @@ import { ArrowRight, Factory, LogOut, Printer, Sparkles } from "lucide-react";
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
-import { FACTORY_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, dueDateInfo } from "../lib/project-utils";
+import { FACTORY_STATUSES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseStages, stagesToPercent } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
@@ -59,13 +59,23 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     }
   };
 
-  const updateProgress = async (id: string, value: number) => {
-    setProjects((list) => list.map((p) => (p.id === id ? { ...p, completionPercent: value } : p)));
-    if (openProject?.id === id) setOpenProject((p) => (p ? { ...p, completionPercent: value } : p));
+  // تأشير مرحلة يزيد نسبة الإنجاز 25% تلقائيًا (النسبة تُحسب على الخادم).
+  const toggleWorkStage = async (project: ProjectSummary, key: string, checked: boolean) => {
+    const current = parseStages(project.stages);
+    const next = checked ? [...current, key] : current.filter(k => k !== key);
+    const optimistic = { stages: JSON.stringify(next), completionPercent: stagesToPercent(next) };
+    setProjects(list => list.map(p => (p.id === project.id ? { ...p, ...optimistic } : p)));
+    if (openProject?.id === project.id) setOpenProject(p => (p ? { ...p, ...optimistic } : p));
+    setError("");
     try {
-      await api(`/api/projects/${id}/progress`, { method: "POST", body: JSON.stringify({ completionPercent: value }) });
+      const data = await api<{ project: ProjectSummary }>(`/api/projects/${project.id}/progress`, {
+        method: "POST",
+        body: JSON.stringify({ stages: next }),
+      });
+      setProjects(list => list.map(p => (p.id === project.id ? { ...p, ...data.project } : p)));
+      if (openProject?.id === project.id) setOpenProject(p => (p ? { ...p, ...data.project } : p));
     } catch (e) {
-      setError(e instanceof Error && e.message ? `تعذر حفظ نسبة الإنجاز: ${e.message}` : "تعذر حفظ نسبة الإنجاز، حاول مجددًا");
+      setError(e instanceof Error && e.message ? `تعذر حفظ المرحلة: ${e.message}` : "تعذر حفظ المرحلة، حاول مجددًا");
       load();
     }
   };
@@ -131,10 +141,23 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                     </select>
                   </label>
 
+                  <div className="work-stages">
+                    <span className="work-stages-title">مراحل التنفيذ — كل مرحلة 25%</span>
+                    {WORK_STAGES.map((stage) => {
+                      const done = parseStages(p.stages).includes(stage.key);
+                      return (
+                        <label className={`work-stage ${done ? "is-done" : ""}`} key={stage.key}>
+                          <input type="checkbox" checked={done} onChange={(e) => toggleWorkStage(p, stage.key, e.target.checked)} />
+                          <span>{stage.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
                   <div className="progress-edit">
                     <div className="progress-bar"><div className="progress-fill" style={{ width: `${p.completionPercent}%` }} /></div>
                     <div className="progress-row">
-                      <input type="range" min={0} max={100} step={5} value={p.completionPercent} onChange={(e) => updateProgress(p.id, Number(e.target.value))} />
+                      <span className="progress-caption">نسبة الإنجاز</span>
                       <strong>{p.completionPercent}%</strong>
                     </div>
                     {p.completionUpdatedAt && <small>آخر تحديث: {new Date(p.completionUpdatedAt).toLocaleString("ar-SA")}</small>}

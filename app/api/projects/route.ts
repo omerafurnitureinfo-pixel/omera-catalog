@@ -19,6 +19,7 @@ function summarize(row: typeof projects.$inferSelect) {
     statusUpdatedAt: row.statusUpdatedAt,
     startDate: row.startDate,
     dueDate: row.dueDate,
+    stages: row.stages,
     completionPercent: row.completionPercent,
     completionUpdatedAt: row.completionUpdatedAt,
     totalAmount: row.totalAmount,
@@ -54,14 +55,24 @@ export async function POST(request: Request) {
     if (!me || me.role !== "engineer") {
       return Response.json({ error: "إنشاء المشاريع متاح لحساب المهندس فقط" }, { status: 403 });
     }
-    const payload = (await request.json()) as { id: string; name: string; clientName?: string; data: unknown };
+    const payload = (await request.json()) as { id: string; name: string; clientName?: string; clientNumber?: number | null; data: unknown };
     if (!payload.id || !payload.name || payload.data === undefined) {
       return Response.json({ error: "بيانات المشروع ناقصة" }, { status: 400 });
     }
     const db = getDb();
     const now = new Date().toISOString();
-    const [{ maxNumber }] = await db.select({ maxNumber: sql<number | null>`max(${projects.clientNumber})` }).from(projects);
-    const nextClientNumber = (maxNumber ?? FIRST_CLIENT_NUMBER - 1) + 1;
+    // المهندس يقدر يحدّد كود العميل عند الإنشاء، وإلا يُحسب التالي تلقائيًا.
+    let nextClientNumber: number;
+    if (payload.clientNumber !== undefined && payload.clientNumber !== null) {
+      const parsed = Number(payload.clientNumber);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        return Response.json({ error: "كود العميل يجب أن يكون رقمًا صحيحًا موجبًا" }, { status: 400 });
+      }
+      nextClientNumber = parsed;
+    } else {
+      const [{ maxNumber }] = await db.select({ maxNumber: sql<number | null>`max(${projects.clientNumber})` }).from(projects);
+      nextClientNumber = (maxNumber ?? FIRST_CLIENT_NUMBER - 1) + 1;
+    }
     const [created] = await db
       .insert(projects)
       .values({

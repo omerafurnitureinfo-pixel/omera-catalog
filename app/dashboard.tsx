@@ -4,8 +4,10 @@ import { useState } from "react";
 import { FilePlus2, Hash, Layers, LayoutTemplate, LogOut, Sparkles, Trash2, Users } from "lucide-react";
 import { NotificationsBell } from "./notifications";
 import { AccountsModal } from "./accounts-modal";
+import { NewProjectModal } from "./new-project-modal";
 import {
-  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, dashboardGroupOf, isFactoryVisible, paymentPercent,
+  DASHBOARD_GROUP_LABELS, DashboardGroup, ProjectSummary, STATUS_LABELS, WORK_STAGES,
+  dashboardGroupOf, isFactoryVisible, parseStages, paymentPercent,
 } from "./lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
@@ -58,19 +60,17 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
   projects: ProjectSummary[];
   loading: boolean;
   onOpenProject: (id: string) => void;
-  onCreateProject: (clientName: string) => void;
+  onCreateProject: (clientName: string, clientNumber: number) => Promise<void> | void;
   onLogout: () => void;
   onShowAll: () => void;
   onProjectsChanged: () => void;
 }) {
   const [showAccounts, setShowAccounts] = useState(false);
+  const [showNewProject, setShowNewProject] = useState(false);
   const [error, setError] = useState("");
 
-  const createProject = () => {
-    const clientName = window.prompt("اسم العميل للمشروع الجديد:");
-    if (clientName === null || !clientName.trim()) return;
-    onCreateProject(clientName);
-  };
+  // الكود المقترح = أكبر كود موجود + 1 (وأقلها 11001).
+  const suggestedNumber = Math.max(11000, ...projects.map(p => p.clientNumber ?? 0)) + 1;
 
   const editCode = async (project: ProjectSummary) => {
     const entered = window.prompt(`كود العميل لمشروع "${project.clientName || project.name}":`, project.clientNumber ? String(project.clientNumber) : "");
@@ -112,7 +112,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
       <header className="topbar no-print">
         <div className="brand"><div className="brand-mark"><Sparkles size={16} /></div><div><strong>لوحة <em>التحكم</em></strong><span>نظرة عامة على كل المشاريع</span></div></div>
         <div className="top-actions">
-          <button className="primary-button" onClick={createProject}><FilePlus2 size={16} /> مشروع جديد</button>
+          <button className="primary-button" onClick={() => setShowNewProject(true)}><FilePlus2 size={16} /> مشروع جديد</button>
           <button className="outline-button" onClick={() => setShowAccounts(true)}><Users size={16} /> الحسابات</button>
           <NotificationsBell projects={projects} onOpen={onOpenProject} />
           <span className="separator" />
@@ -121,6 +121,13 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
         </div>
       </header>
       {showAccounts && <AccountsModal onClose={() => setShowAccounts(false)} />}
+      {showNewProject && (
+        <NewProjectModal
+          suggestedNumber={suggestedNumber}
+          onClose={() => setShowNewProject(false)}
+          onCreate={async (clientName, clientNumber) => { setShowNewProject(false); await onCreateProject(clientName, clientNumber); }}
+        />
+      )}
 
       <div className="dashboard-body">
         {loading && <p className="auth-hint">جارٍ التحميل...</p>}
@@ -142,6 +149,11 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
                     <div><dt>تسليم المصنع</dt><dd>{fmtDate(p.startDate)}</dd></div>
                     <div><dt>موعد الاستلام</dt><dd>{fmtDate(p.dueDate)}</dd></div>
                   </dl>
+                  <div className="stage-chips">
+                    {WORK_STAGES.map(stage => (
+                      <span key={stage.key} className={`stage-chip ${parseStages(p.stages).includes(stage.key) ? "is-done" : ""}`}>{stage.label}</span>
+                    ))}
+                  </div>
                   <div className="factory-update-progress">
                     <span className="progress-caption">الإنجاز</span>
                     <div className="progress-bar"><div className="progress-fill" style={{ width: `${p.completionPercent}%` }} /></div>

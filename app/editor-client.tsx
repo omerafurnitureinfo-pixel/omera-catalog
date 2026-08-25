@@ -12,6 +12,7 @@ import {
 } from './catalog-types';
 import { CatalogPageView, Field, ImagePlaceholder } from './catalog-view';
 import { NotificationsBell } from './notifications';
+import { NewProjectModal } from './new-project-modal';
 import { ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
 import { Dashboard } from './dashboard';
 
@@ -81,6 +82,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
+  const [showNewProject, setShowNewProject] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
   const [toast, setToast] = useState('');
   const [history, setHistory] = useState<{ pages: CatalogPage[]; settings: Record<string, string | boolean> }[]>([]);
@@ -110,7 +112,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
 
   // المشروع الجديد يُسمّى باسم العميل مباشرة (بدل "كتالوج جديد")، ويُكتب
   // نفس الاسم في خانة العميل بصفحة الغلاف حتى يبقيا مرتبطين من البداية.
-  const createNewProject = async (clientName: string) => {
+  const createNewProject = async (clientName: string, clientNumber?: number) => {
     const name = clientName.trim();
     if (!name) return;
     const data = newProjectData();
@@ -120,7 +122,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
       if (user.displayName) cover.fields.designer = user.displayName;
     }
     const id = uid();
-    await api('/api/projects', { method: 'POST', body: JSON.stringify({ id, name, data }) });
+    await api('/api/projects', { method: 'POST', body: JSON.stringify({ id, name, clientNumber, data }) });
     await openProjectById(id);
     setView('editor');
     saveMessage('تم إنشاء مشروع جديد');
@@ -254,11 +256,8 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     event.target.value = '';
   };
   const print = () => { window.print(); };
-  const createNew = () => {
-    const clientName = window.prompt('اسم العميل للمشروع الجديد:');
-    if (clientName === null || !clientName.trim()) return;
-    void createNewProject(clientName);
-  };
+  const createNew = () => setShowNewProject(true);
+  const suggestedClientNumber = Math.max(11000, ...allProjects.map(p => p.clientNumber ?? 0)) + 1;
   const logout = async () => { await api('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; };
 
   const updateSetting = (key: string, value: string | boolean) => setSettings(current => ({ ...current, [key]: value }));
@@ -276,7 +275,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
         projects={allProjects}
         loading={!hydrated}
         onOpenProject={id => void openProjectFromDashboard(id)}
-        onCreateProject={clientName => void createNewProject(clientName)}
+        onCreateProject={(clientName, clientNumber) => createNewProject(clientName, clientNumber)}
         onLogout={logout}
         onShowAll={() => setShowProjects(true)}
         onProjectsChanged={refreshProjectsList}
@@ -355,6 +354,7 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     {showSettings && <SettingsModal settings={settings} onChange={updateSetting} onClose={() => setShowSettings(false)} onExport={exportProject} onImport={() => importRef.current?.click()} />}
     {showTemplates && <TemplateModal onPick={addPage} onClose={() => setShowTemplates(false)} />}
     {showProjects && <ProjectsModal currentId={projectId} onClose={() => setShowProjects(false)} onOpen={async (id) => { await openProjectById(id); setShowProjects(false); saveMessage('تم فتح المشروع'); }} />}
+    {showNewProject && <NewProjectModal suggestedNumber={suggestedClientNumber} onClose={() => setShowNewProject(false)} onCreate={async (name, number) => { setShowNewProject(false); await createNewProject(name, number); }} />}
     {showApproval && status && <StatusModal projectId={projectId} status={status} pages={pages} onClose={() => setShowApproval(false)} onClientNameChange={(value) => updatePage2ByKind('cover', page => ({ ...page, fields: { ...page.fields, client: value } }), pages, commit)} onUpdated={(next) => { setStatus(next); refreshProjectsList(); }} />}
     <div className="print-all-pages no-print" aria-hidden style={{ display: 'none' }}>{pages.filter(page => !page.hidden).map((page, index) => <div key={page.id} className="print-page-wrapper"><CatalogPageView page={page} pageNumber={index + 1} settings={settings} clientNumber={status?.clientNumber} readOnly /></div>)}</div>
     <input ref={importRef} type="file" accept="application/json" hidden onChange={importProject} />

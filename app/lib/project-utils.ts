@@ -52,6 +52,7 @@ export type ProjectSummary = {
   statusUpdatedAt: string | null;
   startDate: string | null;
   dueDate: string | null;
+  stages: string;
   completionPercent: number;
   completionUpdatedAt: string | null;
   totalAmount: number | null;
@@ -60,6 +61,36 @@ export type ProjectSummary = {
   createdAt: string;
   updatedAt: string;
 };
+
+/* ---------------- مراحل التنفيذ عند المصنع ---------------- */
+
+// أربع مراحل يؤشّرها المصنع، كل واحدة تساوي 25% من نسبة الإنجاز.
+export const WORK_STAGES = [
+  { key: "carpentry", label: "توريد النجارة" },
+  { key: "paint", label: "توريد الدهان" },
+  { key: "upholstery", label: "توريد التنجيد" },
+  { key: "installation", label: "التركيب" },
+] as const;
+
+export type WorkStageKey = (typeof WORK_STAGES)[number]["key"];
+const STAGE_KEYS = WORK_STAGES.map(s => s.key) as readonly string[];
+export const STAGE_PERCENT = 100 / WORK_STAGES.length;
+
+// نقرأ المراحل بتساهل (قد تأتي من قاعدة بيانات قديمة أو JSON تالف) ونتجاهل
+// أي مفتاح غير معروف أو مكرر حتى لا تتجاوز النسبة 100%.
+export function parseStages(raw: string | null | undefined): WorkStageKey[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.filter((k): k is WorkStageKey => typeof k === "string" && STAGE_KEYS.includes(k)))];
+  } catch {
+    return [];
+  }
+}
+
+export const stagesToPercent = (stages: readonly string[]) =>
+  Math.round(stages.length * STAGE_PERCENT);
 
 /* ---------------- السداد وتنبيهات المطالبة ---------------- */
 
