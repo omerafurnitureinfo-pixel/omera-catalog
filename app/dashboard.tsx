@@ -149,6 +149,12 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
                     <div><dt>تسليم المصنع</dt><dd>{fmtDate(p.startDate)}</dd></div>
                     <div><dt>موعد الاستلام</dt><dd>{fmtDate(p.dueDate)}</dd></div>
                   </dl>
+                  {(p.factoryDueDate || p.factoryNote) && (
+                    <div className="factory-note-readout">
+                      {p.factoryDueDate && <div><dt>تسليم متوقع من المصنع</dt><dd>{fmtDate(p.factoryDueDate)}</dd></div>}
+                      {p.factoryNote && <p>{p.factoryNote}</p>}
+                    </div>
+                  )}
                   <div className="stage-chips">
                     {WORK_STAGES.map(stage => (
                       <span key={stage.key} className={`stage-chip ${parseStages(p.stages).includes(stage.key) ? "is-done" : ""}`}>{stage.label}</span>
@@ -182,7 +188,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
               <p className="section-label">{DASHBOARD_GROUP_LABELS[group]} <span className="dash-count">{grouped[group].length}</span></p>
               {grouped[group].length === 0 && <p className="empty-state">لا توجد مشاريع هنا حاليًا.</p>}
               <div className="dash-project-list">
-                {grouped[group].map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={deleteProject} />)}
+                {grouped[group].map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={isFactoryVisible(project.status) ? undefined : deleteProject} />)}
               </div>
             </section>
           ))}
@@ -192,7 +198,7 @@ export function Dashboard({ user, projects, loading, onOpenProject, onCreateProj
           <p className="section-label"><span className="section-label-title"><LayoutTemplate size={13} /> المشاريع السابقة</span><button onClick={onShowAll}>عرض الكل وبحث</button></p>
           {recent.length === 0 && !loading && <p className="empty-state">لا توجد مشاريع بعد — ابدأ بإنشاء أول مشروع.</p>}
           <div className="dash-project-list">
-            {recent.map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={deleteProject} />)}
+            {recent.map(project => <ProjectRow key={project.id} project={project} onOpen={onOpenProject} onEditCode={editCode} onDelete={isFactoryVisible(project.status) ? undefined : deleteProject} />)}
           </div>
         </section>
       </div>

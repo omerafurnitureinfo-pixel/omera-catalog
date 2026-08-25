@@ -43,6 +43,13 @@
       "when": 1787664897349,
       "tag": "0005_salty_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787665798423,
+      "tag": "0006_watery_nemesis",
+      "breakpoints": true
     }
   ]
 }

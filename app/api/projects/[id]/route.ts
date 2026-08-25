@@ -95,6 +95,13 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     }
     const { id } = await context.params;
     const db = getDb();
+    // المشروع المعتمد صار تحت يد المصنع والمحاسب، فلا يُحذف. للحذف يجب
+    // التراجع عن الاعتماد أولًا.
+    const [existing] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+    if (!existing) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });
+    if (isFactoryVisible(existing.status)) {
+      return Response.json({ error: "لا يمكن حذف مشروع معتمد. تراجع عن الاعتماد أولًا ثم احذفه." }, { status: 403 });
+    }
     await db.delete(projects).where(eq(projects.id, id));
     return Response.json({ ok: true });
   } catch (error) {

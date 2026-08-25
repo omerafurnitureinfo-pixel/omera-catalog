@@ -100,6 +100,23 @@
 .progress-caption{font-size:9px;color:#a08363;width:38px;flex-shrink:0}
 
 /* ============ مراحل التنفيذ (المصنع) ============ */
+/* خانة تاريخ/ملاحظة المصنع الاختيارية */
+.factory-note-toggle{width:100%;justify-content:center;border-color:#dcd5cb;color:#8e877d;font-size:10.5px}
+.factory-note-toggle:hover{border-color:#bda27f;color:#8d6d4c}
+.factory-note-panel{border:1px solid #e2dbd2;background:#f7f5f1;border-radius:6px;padding:10px 11px;display:flex;flex-direction:column;gap:2px}
+.factory-note-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.factory-note-head span{font-size:9.5px;color:#a08363}
+.factory-note-head .icon-button{width:24px;height:24px;color:#a49a8c}
+.factory-note-head .icon-button:hover{background:#eee8dd;color:#8d6d4c}
+.factory-note-panel .field{margin-bottom:6px}
+.factory-note-panel textarea{min-height:52px}
+.factory-note-save{width:100%;justify-content:center}
+.factory-note-hint{font-size:8.5px;color:#a49a8c;text-align:center;margin-top:4px}
+.factory-note-readout{background:#f3efe9;border:1px solid #e2dbd2;border-radius:5px;padding:7px 9px;display:flex;flex-direction:column;gap:4px}
+.factory-note-readout dt{font-size:8.5px;color:#a08363}
+.factory-note-readout dd{margin:0;font-size:10.5px;color:#4a4640;font-family:Inter,sans-serif}
+.factory-note-readout p{margin:0;font-size:10px;color:#5f5a53;line-height:1.6}
+
 .factory-tables{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:560px){.factory-tables{grid-template-columns:1fr}}
 .work-stages{display:flex;flex-direction:column;gap:5px;border-top:1px solid #e6dfd5;padding-top:10px;min-width:0}

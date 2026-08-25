@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Factory, LogOut, Printer, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronUp, Factory, LogOut, Plus, Printer, Sparkles } from "lucide-react";
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
@@ -24,6 +24,52 @@ function activityLine(entry: ActivityEntry): string {
   if (entry.action === "status_changed") return `${who} غيّر المرحلة ${entry.details ?? ""}`;
   if (entry.action === "progress_updated") return `${who} حدّث نسبة الإنجاز إلى ${entry.details ?? ""}`;
   return `${who} — ${entry.action}`;
+}
+
+// خانة اختيارية: تاريخ تسليم متوقع من المصنع + ملاحظة. مخفية افتراضيًا،
+// ويفتحها المصنع عند الحاجة. لا تظهر للمهندس إلا إذا عُبّئت فعلًا.
+function FactoryNotePanel({ project, onSave }: {
+  project: ProjectSummary;
+  onSave: (project: ProjectSummary, factoryDueDate: string, factoryNote: string) => Promise<void>;
+}) {
+  const hasContent = Boolean(project.factoryDueDate || project.factoryNote);
+  const [open, setOpen] = useState(hasContent);
+  const [dueDate, setDueDate] = useState(project.factoryDueDate ?? "");
+  const [note, setNote] = useState(project.factoryNote ?? "");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { setDueDate(project.factoryDueDate ?? ""); }, [project.factoryDueDate]);
+  useEffect(() => { setNote(project.factoryNote ?? ""); }, [project.factoryNote]);
+
+  const dirty = dueDate !== (project.factoryDueDate ?? "") || note !== (project.factoryNote ?? "");
+  const save = async () => { setBusy(true); try { await onSave(project, dueDate, note); } finally { setBusy(false); } };
+
+  if (!open) {
+    return (
+      <button className="outline-button factory-note-toggle" onClick={() => setOpen(true)}>
+        <Plus size={14} /> إضافة تاريخ تسليم متوقع وملاحظة
+      </button>
+    );
+  }
+
+  return (
+    <div className="factory-note-panel">
+      <div className="factory-note-head">
+        <span>تاريخ التسليم المتوقع وملاحظة المصنع</span>
+        <button className="icon-button" title="إخفاء" onClick={() => setOpen(false)}><ChevronUp size={15} /></button>
+      </div>
+      <label className="field"><span>تاريخ التسليم المتوقع (من المصنع)</span>
+        <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+      </label>
+      <label className="field"><span>ملاحظة</span>
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="تظهر للمهندس عند كتابتها فقط" />
+      </label>
+      <button className="primary-button factory-note-save" disabled={busy || !dirty} onClick={save}>
+        {busy ? "جارٍ الحفظ..." : "حفظ"}
+      </button>
+      {!hasContent && <small className="factory-note-hint">لن تظهر للمهندس ما دامت فارغة.</small>}
+    </div>
+  );
 }
 
 export default function FactoryClient({ user }: { user: SessionUser }) {
@@ -75,7 +121,23 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
     }
   };
 
-  // مراحل النجارة/الدهان/التنجيد فقط تُحتسب في النسبة (تُحسب على الخادم).
+  // تاريخ التسليم المتوقع من المصنع وملاحظته — يظهران للمهندس فقط إذا عُبّئا.
+  const saveFactoryNote = async (project: ProjectSummary, factoryDueDate: string, factoryNote: string) => {
+    setError("");
+    try {
+      const data = await api<{ project: ProjectSummary }>(`/api/projects/${project.id}/materials`, {
+        method: "POST",
+        body: JSON.stringify({ factoryDueDate, factoryNote }),
+      });
+      setProjects(list => list.map(p => (p.id === project.id ? { ...p, ...data.project } : p)));
+      if (openProject?.id === project.id) setOpenProject(p => (p ? { ...p, ...data.project } : p));
+    } catch (e) {
+      setError(e instanceof Error && e.message ? `تعذر حفظ الملاحظة: ${e.message}` : "تعذر حفظ الملاحظة، حاول مجددًا");
+      load();
+    }
+  };
+
+  // مراحل النجارة/الدهان/التنجيد/اكتمال التصنيع تُحتسب في النسبة (على الخادم).
   const toggleWorkStage = async (project: ProjectSummary, key: string, checked: boolean) => {
     const current = parseStages(project.stages);
     const next = checked ? [...current, key] : current.filter(k => k !== key);
@@ -150,6 +212,8 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                     <div><span>التسليم المتوقع</span><strong>{p.dueDate ? new Date(p.dueDate).toLocaleDateString("ar-SA") : "—"}</strong></div>
                   </div>
                   <span className={`remaining-pill tone-${remaining.tone}`}>{remaining.text}</span>
+
+                  <FactoryNotePanel project={p} onSave={saveFactoryNote} />
 
                   <label className="field factory-stage-field"><span>مرحلة التنفيذ</span>
                     <select value={p.status} onChange={(e) => updateStage(p.id, e.target.value as ProjectStatus)}>

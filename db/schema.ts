@@ -46,6 +46,10 @@ export const projects = sqliteTable("projects", {
   stages: text("stages").notNull().default("[]"),
   // جدول توريد الخامات — لمساعدة المصنع فقط، خارج نسبة الإنجاز.
   materials: text("materials").notNull().default("[]"),
+  // تاريخ تسليم متوقع من المصنع + ملاحظته. اختياريان: لا يظهران للمهندس
+  // إلا إذا عبّأهما المصنع فعلًا.
+  factoryDueDate: text("factory_due_date"),
+  factoryNote: text("factory_note"),
   completionPercent: integer("completion_percent").notNull().default(0),
   completionUpdatedAt: text("completion_updated_at"),
   // بيانات السداد — يحدّدها المحاسب وحده. نسبة السداد تُحسب من المبلغين

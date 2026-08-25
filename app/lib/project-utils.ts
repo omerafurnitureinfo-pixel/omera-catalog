@@ -31,7 +31,8 @@ export const FACTORY_STATUSES: ProjectStatus[] = ["approved", "in_progress", "co
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
   draft: "مسودة",
   review: "قيد المراجعة",
-  approved: "معتمد",
+  // "approved" يعني الملف اعتُمد وسُلّم للمصنع وينتظر بدء التنفيذ.
+  approved: "انتظار",
   in_progress: "تحت التنفيذ",
   completed: "مكتمل",
   delivered: "تم التسليم",
@@ -54,6 +55,8 @@ export type ProjectSummary = {
   dueDate: string | null;
   stages: string;
   materials: string;
+  factoryDueDate: string | null;
+  factoryNote: string | null;
   completionPercent: number;
   completionUpdatedAt: string | null;
   totalAmount: number | null;
@@ -66,12 +69,13 @@ export type ProjectSummary = {
 /* ---------------- مراحل التنفيذ عند المصنع ---------------- */
 
 // مراحل المشروع التي يؤشّرها المصنع وتظهر للمهندس والمحاسب.
-// النجارة والدهان والتنجيد فقط هي التي تُحتسب في نسبة الإنجاز (100% ÷ 3)،
-// أما التوريد والتركيب فمرحلتان خارج النسبة (متابعة فقط).
+// أربع مراحل تُحتسب في نسبة الإنجاز (25% لكل مرحلة)، أما التوريد والتركيب
+// فمرحلتان خارج النسبة (متابعة فقط).
 export const WORK_STAGES = [
   { key: "carpentry", label: "مرحلة النجارة", counted: true },
   { key: "paint", label: "مرحلة الدهان", counted: true },
   { key: "upholstery", label: "مرحلة التنجيد", counted: true },
+  { key: "manufacturing_done", label: "اكتمال التصنيع", counted: true },
   { key: "supply", label: "مرحلة التوريد", counted: false },
   { key: "installation", label: "مرحلة التركيب", counted: false },
 ] as const;

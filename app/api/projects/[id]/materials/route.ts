@@ -16,15 +16,35 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     const { id } = await context.params;
-    const payload = (await request.json()) as { materials?: unknown };
-    if (!Array.isArray(payload.materials)) {
-      return Response.json({ error: "قائمة الخامات غير صحيحة" }, { status: 400 });
+    const payload = (await request.json()) as {
+      materials?: unknown;
+      factoryDueDate?: string | null;
+      factoryNote?: string | null;
+    };
+
+    const updates: Record<string, unknown> = {};
+
+    if (payload.materials !== undefined) {
+      if (!Array.isArray(payload.materials)) {
+        return Response.json({ error: "قائمة الخامات غير صحيحة" }, { status: 400 });
+      }
+      const validKeys = MATERIAL_STAGES.map(s => s.key) as readonly string[];
+      if (!payload.materials.every(k => typeof k === "string" && validKeys.includes(k))) {
+        return Response.json({ error: "عنصر خامات غير معروف" }, { status: 400 });
+      }
+      updates.materials = JSON.stringify(parseMaterials(JSON.stringify(payload.materials)));
     }
-    const validKeys = MATERIAL_STAGES.map(s => s.key) as readonly string[];
-    if (!payload.materials.every(k => typeof k === "string" && validKeys.includes(k))) {
-      return Response.json({ error: "عنصر خامات غير معروف" }, { status: 400 });
+    // فارغ = غير مُدخَل، فيُخزَّن null ولا يظهر للمهندس.
+    if (payload.factoryDueDate !== undefined) {
+      updates.factoryDueDate = payload.factoryDueDate?.trim() ? payload.factoryDueDate : null;
     }
-    const materials = parseMaterials(JSON.stringify(payload.materials));
+    if (payload.factoryNote !== undefined) {
+      updates.factoryNote = payload.factoryNote?.trim() ? payload.factoryNote.trim() : null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return Response.json({ error: "لا توجد بيانات للحفظ" }, { status: 400 });
+    }
 
     const db = getDb();
     const [existing] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
@@ -36,11 +56,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const now = new Date().toISOString();
     const [updated] = await db
       .update(projects)
-      .set({ materials: JSON.stringify(materials), updatedAt: now })
+      .set({ ...updates, updatedAt: now })
       .where(eq(projects.id, id))
       .returning();
 
-    return Response.json({ project: { id: updated.id, materials: updated.materials } });
+    return Response.json({
+      project: {
+        id: updated.id,
+        materials: updated.materials,
+        factoryDueDate: updated.factoryDueDate,
+        factoryNote: updated.factoryNote,
+      },
+    });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });
   }
