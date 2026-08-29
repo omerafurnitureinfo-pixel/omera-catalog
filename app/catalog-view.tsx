@@ -1,6 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
 import { Globe2, ImagePlus, Instagram, Mail, MapPin, Phone, X } from 'lucide-react';
-import { CatalogPage, MaterialSample, ProductRow, isFieldVisible, logoPath } from './catalog-types';
+import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath } from './catalog-types';
 
 export function Field({ label, value, onChange, multiline = false, readOnly = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; readOnly?: boolean }) {
   return <label className="field"><span className="field-label-row"><span>{label}</span></span>{multiline ? <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} /> : <input value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} />}</label>;
@@ -10,7 +10,7 @@ export function ImagePlaceholder({ image, label, onUpload, onRemove, readOnly = 
   const inputRef = useRef<HTMLInputElement>(null);
   const handleFile = (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; if (file) onUpload(file); event.target.value = ''; };
   return <div className={`image-placeholder ${image ? 'has-image' : ''} ${readOnly ? 'read-only' : ''}`} onClick={() => !readOnly && inputRef.current?.click()}>
-    {image ? <img src={image} alt="" /> : <><ImagePlus size={24} /><strong>{label}</strong>{!readOnly && <small>اضغط لرفع صورة أو استبدالها</small>}</>}
+    {image ? <img src={imageSrc(image)} alt="" /> : <><ImagePlus size={24} /><strong>{label}</strong>{!readOnly && <small>اضغط لرفع صورة أو استبدالها</small>}</>}
     {!readOnly && <input ref={inputRef} type="file" accept="image/*" hidden onChange={handleFile} />}
     {image && !readOnly && <button className="image-remove" onClick={e => { e.stopPropagation(); onRemove(); }} aria-label="حذف الصورة"><X size={14} /></button>}
   </div>;
@@ -63,7 +63,7 @@ function CoverPage({ page, settings, cb, readOnly, clientNumber }: { page: Catal
     {show('tagline') && <div className="cover-tagline">{String(settings.tagline)}</div>}
   </div><div className="cover-visual">
     {show('image') && <div className="cover-frame"><ImagePlaceholder image={page.image} label="صورة الغلاف" readOnly={readOnly} onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} /></div>}
-    {show('logo') && <div className="cover-monogram"><img src={String(settings.logo || logoPath)} alt="شعار OMERA" /><span>CATALOGUE / 2026</span></div>}
+    {show('logo') && <div className="cover-monogram"><img src={imageSrc(String(settings.logo || logoPath))} alt="شعار OMERA" /><span>CATALOGUE / 2026</span></div>}
   </div></div>;
 }
 
@@ -135,7 +135,7 @@ function FreePage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks
 export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnly = false, clientNumber }: { page: CatalogPage; pageNumber?: number; settings: Record<string, string | boolean>; callbacks?: Partial<PageCallbacks>; readOnly?: boolean; clientNumber?: number | null }) {
   const cb: PageCallbacks = { ...noopCallbacks, ...callbacks };
   return <article className={`catalog-page page-${page.kind}`} style={{ '--primary': String(settings.primary), '--secondary': String(settings.secondary) } as React.CSSProperties}>
-    <div className="page-ornament top" />{Boolean(settings.watermark) && <div className="page-watermark">{String(settings.companyEn)}</div>}<div className="page-brand"><img src={String(settings.logo || logoPath)} alt="شعار الشركة" /><span>{String(settings.companyEn)}</span></div>
+    <div className="page-ornament top" />{Boolean(settings.watermark) && <div className="page-watermark">{String(settings.companyEn)}</div>}<div className="page-brand"><img src={imageSrc(String(settings.logo || logoPath))} alt="شعار الشركة" /><span>{String(settings.companyEn)}</span></div>
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}

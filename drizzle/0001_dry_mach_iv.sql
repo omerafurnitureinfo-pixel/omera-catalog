@@ -1,1 +1,0 @@
-ALTER TABLE `projects` ADD `client_number` integer;

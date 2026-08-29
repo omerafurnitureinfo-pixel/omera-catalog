@@ -12,6 +12,12 @@ export const swatches = ['#202829', '#8c6f4c', '#c9b18a', '#e1d9ca', '#66736b', 
 
 export const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+// الصور تُخزَّن منفصلة ويُحفظ في المشروع مرجع بالشكل "img:<id>".
+// نبقي دعم data URL القديمة كما هي حتى تعمل المشاريع غير المُرحَّلة.
+export const IMAGE_REF_PREFIX = 'img:';
+export const imageSrc = (value?: string): string | undefined =>
+  value?.startsWith(IMAGE_REF_PREFIX) ? `/api/images/${value.slice(IMAGE_REF_PREFIX.length)}` : value;
+
 export const blankSample = (): MaterialSample => ({ id: uid(), name: 'عينة جديدة', supplier: '', code: '', color: '', use: '', quantity: '1', notes: '', swatch: swatches[2] });
 
 export const productRows = (): ProductRow[] => [

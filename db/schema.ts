@@ -62,6 +62,16 @@ export const projects = sqliteTable("projects", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// الصور تُخزَّن منفصلة عن ملف المشروع. ملف المشروع يحتفظ بمرجع "img:<id>"
+// فقط، فيبقى صغيرًا (كيلوبايتات) مهما كثرت الصفحات، ولا تُرسَل الصور مع كل
+// عملية حفظ. الصورة تُرفع مرة واحدة وتُقرأ لاحقًا عبر /api/images/<id>.
+export const projectImages = sqliteTable("project_images", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  data: text("data").notNull(), // data URL كاملة
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // سجل النشاط: يوثّق كل تغيير مهم على المشروع (تغيير المرحلة/الاعتماد،
 // تحديث نسبة الإنجاز، إنشاء المشروع) مع اسم صاحب الإجراء ووقته.
 // userDisplayName يُخزَّن كنسخة ثابتة وقت الحدث حتى يبقى السجل مفهومًا
