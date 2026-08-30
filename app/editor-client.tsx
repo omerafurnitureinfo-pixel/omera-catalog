@@ -233,8 +233,14 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   const redo = () => { const next = future[future.length - 1]; if (!next) return; setHistory(items => [...items, { pages, settings }]); setPages(next.pages); setSettings(next.settings); setFuture(items => items.slice(0, -1)); };
   useEffect(() => { const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveMessage('يُحفظ المشروع تلقائيًا بعد كل تعديل'); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); undo(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); });
 
-  const addPage = (kind: PageKind) => { const page = makePage(kind); commit(current => ({ pages: [...current.pages, page] })); setSelectedId(page.id); setShowTemplates(false); saveMessage(`أضيفت ${pageNames[kind]}`); };
-  const duplicatePage = () => { const copy = { ...selected, id: uid(), title: `${selected.title} — نسخة`, fields: { ...selected.fields }, rows: selected.rows.map(row => ({ ...row, id: uid() })), samples: selected.samples.map(sample => ({ ...sample, id: uid() })) }; commit(current => ({ pages: [...current.pages, copy] })); setSelectedId(copy.id); };
+  // الصفحة الجديدة تُدرَج مباشرة بعد الصفحة المفتوحة حاليًا، لا في آخر المستند.
+  const insertAfterSelected = (list: CatalogPage[], page: CatalogPage) => {
+    const index = list.findIndex(item => item.id === selected.id);
+    if (index < 0) return [...list, page];
+    return [...list.slice(0, index + 1), page, ...list.slice(index + 1)];
+  };
+  const addPage = (kind: PageKind) => { const page = makePage(kind); commit(current => ({ pages: insertAfterSelected(current.pages, page) })); setSelectedId(page.id); setShowTemplates(false); saveMessage(`أضيفت ${pageNames[kind]}`); };
+  const duplicatePage = () => { const copy = { ...selected, id: uid(), title: `${selected.title} — نسخة`, fields: { ...selected.fields }, rows: selected.rows.map(row => ({ ...row, id: uid() })), samples: selected.samples.map(sample => ({ ...sample, id: uid() })) }; commit(current => ({ pages: insertAfterSelected(current.pages, copy) })); setSelectedId(copy.id); };
   const deletePage = () => { if (pages.length <= 1) { saveMessage('يجب أن يحتوي المشروع على صفحة واحدة على الأقل'); return; } if (!window.confirm('هل تريد حذف هذه الصفحة؟')) return; const index = pages.findIndex(page => page.id === selected.id); commit(current => ({ pages: current.pages.filter(page => page.id !== selected.id) })); setSelectedId(pages[Math.max(0, index - 1)]?.id ?? ''); };
   const toggleHidden = (id: string) => commit(current => ({ pages: current.pages.map(page => page.id === id ? { ...page, hidden: !page.hidden } : page) }));
   const movePage = (direction: -1 | 1) => { const index = pages.findIndex(page => page.id === selected.id); const next = index + direction; if (next < 0 || next >= pages.length) return; const list = [...pages]; [list[index], list[next]] = [list[next], list[index]]; commit(() => ({ pages: list })); };
