@@ -7,7 +7,7 @@ import {
   Save, Search, Settings, ShieldCheck, Sparkles, Trash2, Undo2, Upload, X, ZoomIn, ZoomOut
 } from 'lucide-react';
 import {
-  CatalogPage, MaterialSample, PageKind, Project, ProductRow, isFieldVisible,
+  CatalogPage, IMAGE_REF_PREFIX, MaterialSample, PageKind, Project, ProductRow, imageSrc, isFieldVisible,
   logoPath, makePage, newProjectData, normalizeProjectData, pageNames, uid,
 } from './catalog-types';
 import { CatalogPageView, Field, ImagePlaceholder } from './catalog-view';
@@ -16,12 +16,12 @@ import { NewProjectModal } from './new-project-modal';
 import { ProjectStatus, ProjectSummary, STATUS_LABELS, isFactoryVisible } from './lib/project-utils';
 import { Dashboard } from './dashboard';
 
-type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' };
+type SessionUser = { id: number; username: string; displayName: string; role: 'engineer' | 'factory' | 'accountant' };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
 
 async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) } });
-  const data = await res.json().catch(() => ({}));
+  const data: any = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'حدث خطأ غير متوقع');
   return data as T;
 }
@@ -536,7 +536,7 @@ function ProjectsModal({ currentId, onClose, onOpen }: { currentId: string; onCl
   return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal projects-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">مساحة العمل</span><h2>المشاريع الأخيرة</h2></div><button onClick={onClose}><X size={19} /></button></div><div className="project-search"><Search size={16} /><input placeholder="ابحث باسم المشروع أو العميل..." value={query} onChange={e => setQuery(e.target.value)} />{query && <button onClick={() => setQuery('')}><X size={14} /></button>}</div>{error && <p className="auth-error" style={{ margin: '0 25px' }}>{error}</p>}<div className="project-list">{filtered.map((item, index) => <div role="button" tabIndex={0} className={`project-card ${item.id === currentId ? 'current' : ''}`} key={item.id} onClick={() => onOpen(item.id)} onKeyDown={e => e.key === 'Enter' && onOpen(item.id)}><div className="project-card-number">{String(index + 1).padStart(2, '0')}</div><div className="project-card-icon"><LayoutTemplate size={19} /></div><div><strong>{item.name}</strong><span>{item.clientName ? `${item.clientName}${item.clientNumber ? ` #${item.clientNumber}` : ''} · ` : ''}{new Date(item.updatedAt).toLocaleDateString('ar-SA')} · {STATUS_LABELS[item.status]}</span></div>{(item.status === 'draft' || item.status === 'review') && <button className="outline-button quick-approve-btn" onClick={e => quickApprove(item.id, e)}><BadgeCheck size={14} /> اعتماد</button>}<ChevronLeft size={16} /></div>)}{filtered.length === 0 && <div className="empty-state">لا توجد مشاريع مطابقة لبحثك.</div>}</div></div></div>;
 }
 
-function PageInspector({ page, updateField, updatePage, uploadImage, addRow, deleteRow, addSample, deleteSample, updateSample }: { page: CatalogPage; updateField: (key: string, value: string) => void; updatePage: (updater: (page: CatalogPage) => CatalogPage) => void; uploadImage: (file: File, callback: (data: string) => void) => void; addRow: () => void; deleteRow: (id: string) => void; addSample: () => void; deleteSample: (id: string) => void; updateSample: (id: string, key: keyof MaterialSample, value: string) => void }) {
+function PageInspector({ page, updateField, updatePage, uploadImage, addRow, deleteRow, addSample, deleteSample, updateSample }: { page: CatalogPage; updateField: (key: string, value: string) => void; updatePage: (updater: (page: CatalogPage) => CatalogPage) => void; uploadImage: (file: File, callback: (data: string) => void, small?: boolean) => void; addRow: () => void; deleteRow: (id: string) => void; addSample: () => void; deleteSample: (id: string) => void; updateSample: (id: string, key: keyof MaterialSample, value: string) => void }) {
   const moveRow = (id: string, direction: -1 | 1) => updatePage(current => { const rows = [...current.rows]; const index = rows.findIndex(row => row.id === id); const next = index + direction; if (index < 0 || next < 0 || next >= rows.length) return current; [rows[index], rows[next]] = [rows[next], rows[index]]; return { ...current, rows }; });
   const moveSample = (id: string, direction: -1 | 1) => updatePage(current => { const samples = [...current.samples]; const index = samples.findIndex(sample => sample.id === id); const next = index + direction; if (index < 0 || next < 0 || next >= samples.length) return current; [samples[index], samples[next]] = [samples[next], samples[index]]; return { ...current, samples }; });
   const visible = (key: string) => isFieldVisible(page, key);

@@ -7,13 +7,13 @@ import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
 import { FACTORY_STATUSES, MATERIAL_STAGES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseMaterials, parseStages, stagesToPercent } from "../lib/project-utils";
 
-type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" };
+type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" | "accountant" };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
 type FullProject = ProjectSummary & { data: { settings: Record<string, string | boolean>; pages: CatalogPage[] } };
 
 async function api<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options?.headers || {}) } });
-  const data = await res.json().catch(() => ({}));
+  const data: any = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "حدث خطأ غير متوقع");
   return data as T;
 }

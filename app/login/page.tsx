@@ -22,7 +22,7 @@ export default function LoginPage() {
   useEffect(() => {
     fetch("/api/auth/bootstrap")
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: any) => {
         if (data.needsSetup) window.location.href = "/setup";
       })
       .catch(() => undefined)
@@ -39,7 +39,7 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (!res.ok) {
         setError(data.error || "تعذر تسجيل الدخول");
         setBusy(false);

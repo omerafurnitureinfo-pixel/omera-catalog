@@ -9,6 +9,7 @@ export default async function HomePage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.role === "factory") redirect("/factory");
+  if (user.role === "accountant") redirect("/accountant");
 
   return <EditorClient user={user} />;
 }

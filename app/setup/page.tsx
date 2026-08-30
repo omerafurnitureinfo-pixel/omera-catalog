@@ -17,7 +17,7 @@ export default function SetupPage() {
   useEffect(() => {
     fetch("/api/auth/bootstrap")
       .then((r) => r.json())
-      .then((data) => setNeedsSetup(Boolean(data.needsSetup)))
+      .then((data: any) => setNeedsSetup(Boolean(data.needsSetup)))
       .catch(() => setCheckError("تعذر الاتصال بالخادم. تأكد من إعداد قاعدة البيانات."))
       .finally(() => setChecking(false));
   }, []);
@@ -35,7 +35,7 @@ export default function SetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, displayName }),
       });
-      const data = await res.json();
+      const data: any = await res.json();
       if (!res.ok) {
         setError(data.error || "تعذر إنشاء الحساب");
         setBusy(false);
