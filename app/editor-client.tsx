@@ -272,7 +272,21 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     reader.readAsText(file);
     event.target.value = '';
   };
-  const print = () => { window.print(); };
+  // المتصفح يشتق اسم ملف PDF من عنوان الصفحة، فنضبطه قبل الطباعة ثم نعيده.
+  const pdfFileName = () => {
+    const client = (pages.find(page => page.kind === "cover")?.fields.client || "").trim();
+    const parts = ["اعتماد الخامات"];
+    if (client && client !== "اسم العميل") parts.push(client);
+    if (status?.clientNumber) parts.push(String(status.clientNumber));
+    return parts.join(" - ").replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+  };
+  const print = () => {
+    const previousTitle = document.title;
+    const restore = () => { document.title = previousTitle; };
+    document.title = pdfFileName();
+    window.addEventListener("afterprint", restore, { once: true });
+    window.print();
+  };
   const createNew = () => setShowNewProject(true);
   const suggestedClientNumber = Math.max(11000, ...allProjects.map(p => p.clientNumber ?? 0)) + 1;
   const logout = async () => { await api('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; };
