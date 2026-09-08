@@ -275,10 +275,10 @@ export default function EditorClient({ user }: { user: SessionUser }) {
   // المتصفح يشتق اسم ملف PDF من عنوان الصفحة، فنضبطه قبل الطباعة ثم نعيده.
   const pdfFileName = () => {
     const client = (pages.find(page => page.kind === "cover")?.fields.client || "").trim();
-    const parts = ["اعتماد الخامات"];
-    if (client && client !== "اسم العميل") parts.push(client);
-    if (status?.clientNumber) parts.push(String(status.clientNumber));
-    return parts.join(" - ").replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+    // الصيغة المطلوبة: "اعتماد الخامات <اسم العميل>-<رقم الفاتورة>"
+    const title = client && client !== "اسم العميل" ? `اعتماد الخامات ${client}` : "اعتماد الخامات";
+    const clean = (value: string) => value.replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim();
+    return status?.clientNumber ? `${clean(title)}-${status.clientNumber}` : clean(title);
   };
   const print = () => {
     const previousTitle = document.title;
