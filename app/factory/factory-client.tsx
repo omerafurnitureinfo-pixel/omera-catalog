@@ -5,7 +5,7 @@ import { ArrowRight, ChevronUp, Factory, LogOut, Plus, Printer, Sparkles } from 
 import { CatalogPage } from "../catalog-types";
 import { CatalogPageView } from "../catalog-view";
 import { NotificationsBell } from "../notifications";
-import { FACTORY_STATUSES, MATERIAL_STAGES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseMaterials, parseStages, stagesToPercent } from "../lib/project-utils";
+import { FACTORY_STATUSES, MATERIAL_STAGES, ProjectStatus, ProjectSummary, STATUS_LABELS, WORK_STAGES, dueDateInfo, parseMaterials, parseStages, paymentPercent, stagesToPercent } from "../lib/project-utils";
 
 type SessionUser = { id: number; username: string; displayName: string; role: "engineer" | "factory" | "accountant" };
 type ActivityEntry = { id: number; userDisplayName: string; action: string; details: string | null; createdAt: string };
@@ -259,6 +259,21 @@ export default function FactoryClient({ user }: { user: SessionUser }) {
                     </div>
                     {p.completionUpdatedAt && <small>آخر تحديث: {new Date(p.completionUpdatedAt).toLocaleString("ar-SA")}</small>}
                   </div>
+
+                  {/* نسبة السداد للعرض فقط — يحدّدها المحاسب، ويراها المصنع كما يراها المهندس. */}
+                  {(() => {
+                    const paidPct = paymentPercent(p);
+                    const settled = paidPct !== null && paidPct >= 100;
+                    return (
+                      <div className="progress-edit">
+                        <div className="progress-bar"><div className="progress-fill paid" style={{ width: `${paidPct ?? 0}%` }} /></div>
+                        <div className="progress-row">
+                          <span className="progress-caption">نسبة السداد</span>
+                          <strong>{paidPct === null ? "—" : settled ? "مسدَّد" : `${paidPct}%`}</strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <button className="outline-button factory-open-btn" onClick={() => openDetails(p.id)}>عرض تفاصيل الكتالوج</button>
                 </div>
