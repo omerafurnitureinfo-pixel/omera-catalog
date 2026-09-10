@@ -4,13 +4,19 @@ import { projects } from "../../../db/schema";
 import { logActivity } from "../../lib/activity";
 import { getSessionUserFromRequest } from "../../lib/auth";
 import { toRouteErrorMessage } from "../../lib/db-error";
-import { extractClientName } from "../../lib/project-utils";
+import { extractClientName, paymentPercent } from "../../lib/project-utils";
 
 const FACTORY_VISIBLE_DB_STATUSES = ["approved", "in_progress", "completed", "delivered"] as const;
 const FIRST_CLIENT_NUMBER = 11001;
 
-function summarize(row: typeof projects.$inferSelect) {
+// المصنع يرى نسبة السداد فقط. المبالغ نفسها لا تغادر الخادم إليه إطلاقًا،
+// حتى لا تظهر في أدوات المطوّر أو في استجابة الشبكة.
+function summarize(row: typeof projects.$inferSelect, role: string) {
+  const seesAmounts = role === "engineer" || role === "accountant";
   return {
+    paidPercent: paymentPercent(row),
+    totalAmount: seesAmounts ? row.totalAmount : null,
+    paidAmount: seesAmounts ? row.paidAmount : null,
     id: row.id,
     name: row.name,
     clientName: row.clientName,
@@ -25,8 +31,6 @@ function summarize(row: typeof projects.$inferSelect) {
     factoryNote: row.factoryNote,
     completionPercent: row.completionPercent,
     completionUpdatedAt: row.completionUpdatedAt,
-    totalAmount: row.totalAmount,
-    paidAmount: row.paidAmount,
     paymentUpdatedAt: row.paymentUpdatedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -46,7 +50,7 @@ export async function GET(request: Request) {
         ? await db.select().from(projects).orderBy(desc(projects.updatedAt))
         : await db.select().from(projects).where(inArray(projects.status, [...FACTORY_VISIBLE_DB_STATUSES])).orderBy(desc(projects.updatedAt));
 
-    return Response.json({ projects: rows.map(summarize) });
+    return Response.json({ projects: rows.map((row) => summarize(row, me.role)) });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });
   }
@@ -91,7 +95,7 @@ export async function POST(request: Request) {
       })
       .returning();
     await logActivity({ projectId: created.id, userId: me.id, userDisplayName: me.displayName || me.username, action: "created" });
-    return Response.json({ project: summarize(created) }, { status: 201 });
+    return Response.json({ project: summarize(created, me.role) }, { status: 201 });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });
   }

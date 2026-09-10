@@ -59,6 +59,8 @@ export type ProjectSummary = {
   factoryNote: string | null;
   completionPercent: number;
   completionUpdatedAt: string | null;
+  // نسبة السداد يحسبها الخادم. المصنع يستلمها وحدها بينما المبلغان يصلانه null.
+  paidPercent: number | null;
   totalAmount: number | null;
   paidAmount: number | null;
   paymentUpdatedAt: string | null;
