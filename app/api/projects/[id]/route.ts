@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { projects } from "../../../../db/schema";
+import { logPageEdits } from "../../../lib/activity";
 import { getSessionUserFromRequest } from "../../../lib/auth";
+import { describeCatalogChanges } from "../../../lib/catalog-diff";
 import { toRouteErrorMessage } from "../../../lib/db-error";
 import { extractClientName, isFactoryVisible } from "../../../lib/project-utils";
 
@@ -79,8 +81,27 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       updates.clientName = extractClientName(payload.data);
     }
 
+    // قبل الكتابة نقرأ النسخة الحالية لنقارنها. المقارنة تهمّ فقط بعد
+    // الاعتماد، لأن المشروع صار عند المصنع ويجب إشعاره بأي تعديل.
+    let changes: ReturnType<typeof describeCatalogChanges> = [];
+    if (payload.data !== undefined) {
+      const [existing] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+      if (!existing) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });
+      if (isFactoryVisible(existing.status)) {
+        changes = describeCatalogChanges(existing.data, payload.data);
+      }
+    }
+
     const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     if (!updated) return Response.json({ error: "المشروع غير موجود" }, { status: 404 });
+
+    // الإشعار مكمّل للحفظ ولا يجوز أن يُفشله؛ لو تعذّر تسجيله يمضي الحفظ.
+    if (changes.length > 0) {
+      try {
+        await logPageEdits({ projectId: id, userId: me.id, userDisplayName: me.displayName || me.username, changes });
+      } catch { /* تجاهل: الحفظ نجح */ }
+    }
+
     return Response.json({ project: { id: updated.id, name: updated.name, clientName: updated.clientName, clientNumber: updated.clientNumber, dueDate: updated.dueDate, updatedAt: updated.updatedAt } });
   } catch (error) {
     return Response.json({ error: toRouteErrorMessage(error) }, { status: 500 });

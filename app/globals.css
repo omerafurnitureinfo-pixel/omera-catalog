@@ -282,3 +282,12 @@
 .dashboard-recent{background:#faf9f6;border:1px solid #e2dbd2;border-radius:8px;padding:16px 18px}
 .dashboard-recent .section-label button{background:#f1eee9;border:1px solid #e4ddd4;border-radius:20px;padding:3px 10px}
 @media(max-width:900px){.dashboard-groups{grid-template-columns:1fr}}
+
+/* إشعارات تعديل الكتالوج بعد الاعتماد (تظهر للمصنع) */
+.notif-panel{width:320px;max-height:420px}
+.notif-edit{border:1px solid #e4ded4;margin-bottom:4px;align-items:flex-start}
+.notif-edit strong{font-size:11px;color:#6d523a}
+.notif-edit .notif-change{font-size:11px;color:#3c3832;line-height:1.7;white-space:normal;word-break:break-word}
+.notif-edit em{font-size:9px;color:#9a9186;font-style:normal}
+.notif-edit.is-unseen{background:#fdf6ea;border-color:#d8bf9c}
+.notif-edit.is-unseen strong::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#b07f45;margin-inline-start:5px;vertical-align:middle}
