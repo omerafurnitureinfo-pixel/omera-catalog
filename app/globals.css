@@ -291,3 +291,18 @@
 .notif-edit em{font-size:9px;color:#9a9186;font-style:normal}
 .notif-edit.is-unseen{background:#fdf6ea;border-color:#d8bf9c}
 .notif-edit.is-unseen strong::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#b07f45;margin-inline-start:5px;vertical-align:middle}
+
+/* ============ خلفية بيضاء عند الطباعة / حفظ PDF ============
+   على الشاشة تبقى الورقة بلون كريمي هادئ، أما عند الطباعة فتصبح بيضاء
+   تمامًا. نُبقي الحدود والإطارات كما هي حتى لا يضيع تقسيم التصميم، ونُزيل
+   التعبئة الكريمية فقط. */
+@media print{
+  .catalog-page{background:#fff}
+  .catalog-page .drawing-frame,
+  .catalog-page .sample-card,
+  .catalog-page .notes-box,
+  .catalog-page .plan-frame,
+  .catalog-page .image-placeholder{background:#fff}
+  /* الظلال والتدرّجات الخفيفة تطبع كبقع رمادية على الأبيض */
+  .catalog-page:after{display:none}
+}
