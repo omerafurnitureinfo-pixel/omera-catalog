@@ -1,4 +1,4 @@
-export type PageKind = 'cover' | 'product' | 'technical' | 'materials' | 'plan' | 'free';
+export type PageKind = 'cover' | 'product' | 'technical' | 'drawing' | 'materials' | 'plan' | 'free';
 export type MaterialSample = { id: string; name: string; supplier: string; code: string; color: string; use: string; quantity: string; notes: string; image?: string; swatch: string };
 export type ProductRow = { id: string; label: string; value: string; visible: boolean; image?: string };
 export type CatalogPage = { id: string; kind: PageKind; title: string; hidden: boolean; image?: string; hiddenFields?: string[]; fields: Record<string, string>; rows: ProductRow[]; samples: MaterialSample[] };
@@ -7,7 +7,7 @@ export type Project = { id: string; name: string; updatedAt: string } & ProjectD
 
 export const logoPath = '/assets/images/omera-logo-transparent.png';
 export const defaultCoverPath = '/assets/images/omera-cover-a4.png';
-export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', product: 'مواصفات منتج', technical: 'رسم فني', materials: 'خامات وأقمشة', plan: 'مخطط توزيع', free: 'صفحة حرة' };
+export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', product: 'مواصفات منتج', technical: 'رسم فني', drawing: 'رسم فني ملء الصفحة', materials: 'خامات وأقمشة', plan: 'مخطط توزيع', free: 'صفحة حرة' };
 export const swatches = ['#202829', '#8c6f4c', '#c9b18a', '#e1d9ca', '#66736b', '#a85748'];
 
 export const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -34,6 +34,7 @@ export function makePage(kind: PageKind): CatalogPage {
   if (kind === 'cover') return { ...common, title: 'الغلاف', image: defaultCoverPath, fields: { companyAr: 'أوميرا', companyEn: 'OMERA INTERIOR DESIGN', project: 'كتالوج الأثاث والمواصفات الفنية', client: '', location: 'المملكة العربية السعودية', date: 'أغسطس 2026', designer: 'بالتعاون مع مصنع الابتكار الراقي للتنفيذ', intro: 'نصنع التفاصيل ... وننفذ الرؤية', contact: '0554588839  •  0573563025  •  omera.furniture@gmail.com' } };
   if (kind === 'product') return { ...common, title: 'مواصفات | قطعة أثاث', fields: { section: 'مجلس الرجال', product: 'اسم قطعة الأثاث', description: 'وصف مختصر للقطعة وتفاصيل استخدامها', quantity: '1', catalog: 'CAT-001', supplier: 'اسم المورد', finish: 'التشطيب أو الدهان', notes: 'تُراجع الأبعاد والعينة قبل الاعتماد.' }, rows: productRows() };
   if (kind === 'technical') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد', description: 'وصف فني للمخطط أو تفاصيل التصنيع.', scale: 'مقياس 1:20', board: 'A-001', notes: 'جميع الأبعاد بالسنتيمتر ما لم يذكر خلاف ذلك.' } };
+  if (kind === 'drawing') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد' } };
   if (kind === 'materials') return { ...common, title: 'الخامات والأقمشة', fields: { section: 'لوحة الخامات والألوان', description: 'عينات مختارة للمشروع مع أكوادها ومعلومات المورد.' }, samples: [blankSample(), { ...blankSample(), name: 'قماش أساسي', code: 'FAB-024', color: 'رمادي دافئ', use: 'المقاعد', swatch: swatches[0] }] };
   if (kind === 'plan') return { ...common, title: 'مخطط توزيع الأثاث', fields: { room: 'غرفة المعيشة', description: 'مخطط توزيع مبدئي يوضح مواقع الأثاث ومسارات الحركة.', legend: 'الرمز الداكن: قطع رئيسية  |  الرمز الفاتح: قطع مساندة', notes: 'يراجع المخطط مع المقاسات النهائية للموقع.' } };
   return { ...common, title: 'صفحة حرة', fields: { heading: 'عنوان الصفحة', body: 'اكتب المحتوى هنا...', notes: 'ملاحظات إضافية' } };
@@ -41,7 +42,7 @@ export function makePage(kind: PageKind): CatalogPage {
 
 export const defaultSettings: Record<string, string | boolean> = { companyAr: 'أوميرا', companyEn: 'OMERA INTERIOR DESIGN', partner: 'بالتعاون مع مصنع الابتكار الراقي للتنفيذ', phone: '0554588839', phoneAlt: '0573563025', email: 'omera.furniture@gmail.com', instagram: 'omera.furniture', website: '', address: 'المملكة العربية السعودية', tagline: 'نصنع التفاصيل ... وننفذ الرؤية', primary: '#8c6f4c', secondary: '#d8cbb8', footer: 'OMERA  •  INTERIOR DESIGN', showNumbers: true, watermark: false, logo: logoPath };
 
-export const newProjectData = (): ProjectData => ({ settings: { ...defaultSettings }, pages: [makePage('cover'), makePage('product'), makePage('technical')] });
+export const newProjectData = (): ProjectData => ({ settings: { ...defaultSettings }, pages: [makePage('cover'), makePage('product'), makePage('drawing')] });
 
 export const isFieldVisible = (page: CatalogPage, key: string) => !(page.hiddenFields ?? []).includes(key);
 

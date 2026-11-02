@@ -88,6 +88,18 @@ function ProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallba
   </div>;
 }
 
+// صفحة رسم فني بملء الورقة: عنوان واحد قابل للتعديل أعلى، والصورة تأخذ
+// كامل المساحة المتبقية حتى خط التذييل. الهوية والتذييل يبقيان.
+function DrawingPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
+  const show = (key: string) => isFieldVisible(page, key);
+  return <div className="drawing-layout">
+    {show('drawingTitle') && <div className="page-heading centered drawing-heading"><span>TECHNICAL DRAWING</span><input readOnly={readOnly} value={page.fields.drawingTitle ?? ''} onChange={e => cb.onField('drawingTitle', e.target.value)} /></div>}
+    <div className="drawing-full">
+      <ImagePlaceholder image={page.image} label="ارفع الرسم أو المخطط" readOnly={readOnly} onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} />
+    </div>
+  </div>;
+}
+
 function TechnicalPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
   const show = (key: string) => isFieldVisible(page, key);
   return <div className="technical-layout">
@@ -141,6 +153,7 @@ export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnl
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
+    {page.kind === 'drawing' && <DrawingPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'materials' && <MaterialsPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'plan' && <PlanPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'free' && <FreePage page={page} cb={cb} readOnly={readOnly} />}
