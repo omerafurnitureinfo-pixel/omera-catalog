@@ -1,6 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
 import { Globe2, ImagePlus, Instagram, Mail, MapPin, Phone, X } from 'lucide-react';
-import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath, updatedProductCardPath } from './catalog-types';
+import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath, updatedMaterialsPath, updatedProductCardPath } from './catalog-types';
 
 export function Field({ label, value, onChange, multiline = false, readOnly = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; readOnly?: boolean }) {
   return <label className="field"><span className="field-label-row"><span>{label}</span></span>{multiline ? <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} /> : <input value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} />}</label>;
@@ -42,6 +42,42 @@ export const noopCallbacks: PageCallbacks = {
 // بطاقة المنتج المحدثة: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه منطقة
 // رفع صورة المنتج وسبعة حقول في مواضعها المقاسة من الملف الأصلي.
 // الخط Cairo بحجم أكبر قليلًا من الغلاف لوضوح القراءة.
+// ملف الخامات المحدث: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه ثلاث
+// كتل — لكل كتلة صورة خامة وحقلا الكود والمورد — في مواضعها المقاسة من
+// الملف الأصلي. يُعاد استخدام نموذج العيّنات القائم (samples).
+const MATERIAL_BLOCKS = [
+  { image: { top: '8.11%', height: '27.83%' }, code: { top: '13.80%', height: '6.33%' }, supplier: { top: '22.36%', height: '6.33%' } },
+  { image: { top: '37.70%', height: '27.83%' }, code: { top: '43.03%', height: '6.33%' }, supplier: { top: '51.58%', height: '6.33%' } },
+  { image: { top: '68.14%', height: '27.83%' }, code: { top: '73.94%', height: '6.33%' }, supplier: { top: '82.52%', height: '6.30%' } },
+] as const;
+const MAT_IMAGE_X = { right: '46.75%', width: '50.02%' };
+const MAT_FIELD_X = { right: '11.71%', width: '33.81%' };
+
+function UpdatedMaterialsPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
+  const samples = page.samples.slice(0, MATERIAL_BLOCKS.length);
+  return <div className="mfile-layout">
+    <img className="mfile-art" src={updatedMaterialsPath} alt="" />
+    {MATERIAL_BLOCKS.map((block, index) => {
+      const sample = samples[index];
+      if (!sample) return null;
+      return <div key={sample.id}>
+        <div className="mfile-image" style={{ ...MAT_IMAGE_X, ...block.image }}>
+          <ImagePlaceholder image={sample.image} label="اضغط لرفع صورة الخامة" readOnly={readOnly}
+            onUpload={file => cb.onUpload(file, `sample-${sample.id}`)} onRemove={() => cb.onRemoveImage(`sample-${sample.id}`)} />
+        </div>
+        <div className="mfile-field" style={{ ...MAT_FIELD_X, ...block.code }}>
+          <input className="mfile-input" readOnly={readOnly} value={sample.code}
+            onChange={e => cb.onUpdateSample(sample.id, 'code', e.target.value)} />
+        </div>
+        <div className="mfile-field" style={{ ...MAT_FIELD_X, ...block.supplier }}>
+          <input className="mfile-input" readOnly={readOnly} value={sample.supplier}
+            onChange={e => cb.onUpdateSample(sample.id, 'supplier', e.target.value)} />
+        </div>
+      </div>;
+    })}
+  </div>;
+}
+
 function UpdatedProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
   const f = (key: string) => page.fields[key] ?? "";
   const cell = (key: string, extra?: string) => (
@@ -215,6 +251,7 @@ export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnl
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'coverUpdated' && <UpdatedCoverPage page={page} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'productUpdated' && <UpdatedProductPage page={page} cb={cb} readOnly={readOnly} />}
+    {page.kind === 'materialsUpdated' && <UpdatedMaterialsPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'drawing' && <DrawingPage page={page} cb={cb} readOnly={readOnly} />}
