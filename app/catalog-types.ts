@@ -1,4 +1,4 @@
-export type PageKind = 'cover' | 'coverUpdated' | 'product' | 'technical' | 'drawing' | 'materials' | 'plan' | 'free';
+export type PageKind = 'cover' | 'coverUpdated' | 'product' | 'productUpdated' | 'technical' | 'drawing' | 'materials' | 'plan' | 'free';
 export type MaterialSample = { id: string; name: string; supplier: string; code: string; color: string; use: string; quantity: string; notes: string; image?: string; swatch: string };
 export type ProductRow = { id: string; label: string; value: string; visible: boolean; image?: string };
 export type CatalogPage = { id: string; kind: PageKind; title: string; hidden: boolean; image?: string; hiddenFields?: string[]; fields: Record<string, string>; rows: ProductRow[]; samples: MaterialSample[] };
@@ -10,7 +10,9 @@ export const defaultCoverPath = '/assets/images/omera-cover-a4.png';
 // تصميم الغلاف المحدث كما سلّمه العميل (Illustrator → A4 بدقة 300DPI). يُعرض
 // كما هو بلا أي إعادة رسم؛ الحقول وحدها تُكتب فوقه.
 export const updatedCoverPath = '/assets/images/cover-updated.png';
-export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', coverUpdated: 'غلاف محدث', product: 'مواصفات منتج', technical: 'رسم فني', drawing: 'رسم فني ملء الصفحة', materials: 'خامات وأقمشة', plan: 'مخطط توزيع', free: 'صفحة حرة' };
+// تصميم بطاقة المنتج المسلَّم (Illustrator → A4 بدقة 300DPI)، يُعرض كما هو.
+export const updatedProductCardPath = '/assets/images/product-card-updated.png';
+export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', coverUpdated: 'غلاف محدث', product: 'مواصفات منتج', productUpdated: 'بطاقة المنتج محدثة', technical: 'رسم فني', drawing: 'رسم فني ملء الصفحة', materials: 'خامات وأقمشة', plan: 'مخطط توزيع', free: 'صفحة حرة' };
 export const swatches = ['#202829', '#8c6f4c', '#c9b18a', '#e1d9ca', '#66736b', '#a85748'];
 
 export const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -36,6 +38,7 @@ export function makePage(kind: PageKind): CatalogPage {
   const common = { id: uid(), kind, title: pageNames[kind], hidden: false, hiddenFields: [] as string[], fields: {} as Record<string, string>, rows: [] as ProductRow[], samples: [] as MaterialSample[] };
   if (kind === 'cover') return { ...common, title: 'الغلاف', image: defaultCoverPath, fields: { companyAr: 'أوميرا', companyEn: 'OMERA INTERIOR DESIGN', project: 'كتالوج الأثاث والمواصفات الفنية', client: '', location: 'المملكة العربية السعودية', date: 'أغسطس 2026', designer: 'بالتعاون مع مصنع الابتكار الراقي للتنفيذ', intro: 'نصنع التفاصيل ... وننفذ الرؤية', contact: '0554588839  •  0573563025  •  omera.furniture@gmail.com' } };
   if (kind === 'coverUpdated') return { ...common, title: 'غلاف محدث', fields: { clientNumber: '', projectType: '', clientName: '', mobile: '', address: '', date: '', approval: '' } };
+  if (kind === 'productUpdated') return { ...common, title: 'بطاقة المنتج', fields: { description: '', count: '', dimensions: '', fabric: '', paint: '', breem: '', notes: '' } };
   if (kind === 'product') return { ...common, title: 'مواصفات | قطعة أثاث', fields: { section: 'مجلس الرجال', product: 'اسم قطعة الأثاث', description: 'وصف مختصر للقطعة وتفاصيل استخدامها', quantity: '1', catalog: 'CAT-001', supplier: 'اسم المورد', finish: 'التشطيب أو الدهان', notes: 'تُراجع الأبعاد والعينة قبل الاعتماد.' }, rows: productRows() };
   if (kind === 'technical') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد', description: 'وصف فني للمخطط أو تفاصيل التصنيع.', scale: 'مقياس 1:20', board: 'A-001', notes: 'جميع الأبعاد بالسنتيمتر ما لم يذكر خلاف ذلك.' } };
   if (kind === 'drawing') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد' } };

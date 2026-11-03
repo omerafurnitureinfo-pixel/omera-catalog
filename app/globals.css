@@ -344,3 +344,47 @@
 .catalog-page.page-coverUpdated .page-brand,
 .catalog-page.page-coverUpdated .page-footer-line,
 .catalog-page.page-coverUpdated .page-watermark{display:none}
+
+/* ============ بطاقة المنتج المحدثة ============
+   التصميم يُعرض كما هو، وفوقه صورة المنتج والحقول. الخط Cairo بحجم أكبر
+   قليلًا من الغلاف لوضوح القراءة. */
+.pcard-layout{position:absolute;inset:0;z-index:2}
+.pcard-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none}
+.pcard-field{position:absolute;display:flex;align-items:center;padding:0 12px}
+.pcard-input{width:100%;background:transparent;border:0;outline:0;font-family:'Cairo','IBM Plex Sans Arabic',sans-serif;font-size:21px;color:#2b2b2b;text-align:center;padding:0;direction:rtl}
+.pcard-input:focus{background:rgba(236,173,89,.10);border-radius:3px}
+.pcard-notes .pcard-input{font-size:19px;text-align:right}
+/* خانة الأبعاد وحدها يطبع التصميم داخلها نموذجًا (W/H/D)، فنغطّيه عند
+   الكتابة فقط — وتبقى الصفحة الفارغة مطابقة للتصميم تمامًا. */
+.pcard-cover-art.has-value{background:#fff}
+.pcard-cover-art.has-value:focus{background:#fff}
+
+/* منطقة رفع الصورة: شفافة تمامًا فلا تُغطّي إطار التصميم، وتظهر عند
+   المرور فقط لتدلّ على أنها قابلة للضغط. */
+.pcard-image{position:absolute}
+.pcard-image .image-placeholder{height:100%;background:transparent;border:0}
+.pcard-image .image-placeholder:not(.has-image) strong,
+.pcard-image .image-placeholder:not(.has-image) small,
+.pcard-image .image-placeholder:not(.has-image) svg{opacity:0;transition:opacity .15s}
+.pcard-image .image-placeholder:not(.has-image):hover{background:rgba(236,173,89,.07)}
+.pcard-image .image-placeholder:not(.has-image):hover strong,
+.pcard-image .image-placeholder:not(.has-image):hover svg{opacity:1}
+.pcard-image .image-placeholder img{object-fit:contain}
+
+/* زخارف الصفحة القياسية تُخفى حتى لا يُرسم شيء فوق التصميم المسلَّم */
+.catalog-page.page-productUpdated{padding:0}
+.catalog-page.page-productUpdated:before,
+.catalog-page.page-productUpdated:after{display:none}
+.catalog-page.page-productUpdated .page-ornament,
+.catalog-page.page-productUpdated .page-brand,
+.catalog-page.page-productUpdated .page-footer-line,
+.catalog-page.page-productUpdated .page-watermark{display:none}
+
+@media print{
+  .pcard-input{background:transparent!important}
+  .pcard-cover-art.has-value{background:#fff!important}
+  .pcard-image .image-placeholder{border:0!important;background:transparent!important}
+  .pcard-image .image-placeholder:not(.has-image) strong,
+  .pcard-image .image-placeholder:not(.has-image) small,
+  .pcard-image .image-placeholder:not(.has-image) svg{display:none!important}
+}

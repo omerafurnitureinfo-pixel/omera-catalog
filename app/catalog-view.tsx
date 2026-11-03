@@ -1,6 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
 import { Globe2, ImagePlus, Instagram, Mail, MapPin, Phone, X } from 'lucide-react';
-import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath } from './catalog-types';
+import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath, updatedProductCardPath } from './catalog-types';
 
 export function Field({ label, value, onChange, multiline = false, readOnly = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; readOnly?: boolean }) {
   return <label className="field"><span className="field-label-row"><span>{label}</span></span>{multiline ? <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} /> : <input value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} />}</label>;
@@ -39,6 +39,38 @@ export const noopCallbacks: PageCallbacks = {
 // الغلاف المحدث: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه حقول شفافة
 // في مواضعها المقاسة من الملف الأصلي (نِسَب من مقاس A4). لا يُعاد رسم أي
 // عنصر من التصميم، فلا يتغير فيه شيء.
+// بطاقة المنتج المحدثة: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه منطقة
+// رفع صورة المنتج وسبعة حقول في مواضعها المقاسة من الملف الأصلي.
+// الخط Cairo بحجم أكبر قليلًا من الغلاف لوضوح القراءة.
+function UpdatedProductPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
+  const f = (key: string) => page.fields[key] ?? "";
+  const cell = (key: string, extra?: string) => (
+    <input
+      className={`pcard-input ${extra ?? ""} ${f(key) ? "has-value" : ""}`}
+      readOnly={readOnly}
+      value={f(key)}
+      onChange={(e) => cb.onField(key, e.target.value)}
+    />
+  );
+  return <div className="pcard-layout">
+    <img className="pcard-art" src={updatedProductCardPath} alt="" />
+    {/* صورة المنتج تملأ الإطار المخصص لها في التصميم */}
+    <div className="pcard-image" style={{ top: '13%', height: '40.72%', right: '9.44%', width: '80.64%' }}>
+      <ImagePlaceholder image={page.image} label="اضغط لرفع صورة المنتج" readOnly={readOnly}
+        onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} />
+    </div>
+    {/* الصف الأول: الوصف ثم العدد */}
+    <div className="pcard-field" style={{ top: '56.20%', height: '6.33%', right: '29.07%', width: '28.31%' }}>{cell('description')}</div>
+    <div className="pcard-field" style={{ top: '56.20%', height: '6.33%', right: '75.93%', width: '14.11%' }}>{cell('count')}</div>
+    {/* الأبعاد: التصميم يطبع W/H/D كنموذج، فتُخفى خلف خلفية بيضاء عند الكتابة فقط */}
+    <div className="pcard-field" style={{ top: '62.53%', height: '6.32%', right: '29.07%', width: '60.97%' }}>{cell('dimensions', 'pcard-cover-art')}</div>
+    <div className="pcard-field" style={{ top: '68.85%', height: '6.33%', right: '29.07%', width: '60.97%' }}>{cell('fabric')}</div>
+    <div className="pcard-field" style={{ top: '75.18%', height: '6.33%', right: '29.07%', width: '60.97%' }}>{cell('paint')}</div>
+    <div className="pcard-field" style={{ top: '81.51%', height: '6.31%', right: '29.07%', width: '60.97%' }}>{cell('breem')}</div>
+    <div className="pcard-field pcard-notes" style={{ top: '88.88%', height: '6.47%', right: '34%', width: '56.40%' }}>{cell('notes')}</div>
+  </div>;
+}
+
 function UpdatedCoverPage({ page, cb, readOnly, clientNumber }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean; clientNumber?: number | null }) {
   const f = (key: string) => page.fields[key] ?? "";
   const cell = (key: string, placeholder: string) => (
@@ -182,6 +214,7 @@ export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnl
     <div className="page-ornament top" />{Boolean(settings.watermark) && <div className="page-watermark">{String(settings.companyEn)}</div>}<div className="page-brand"><img src={imageSrc(String(settings.logo || logoPath))} alt="شعار الشركة" /><span>{String(settings.companyEn)}</span></div>
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'coverUpdated' && <UpdatedCoverPage page={page} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
+    {page.kind === 'productUpdated' && <UpdatedProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'drawing' && <DrawingPage page={page} cb={cb} readOnly={readOnly} />}
