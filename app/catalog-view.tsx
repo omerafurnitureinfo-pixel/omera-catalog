@@ -1,6 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
 import { Globe2, ImagePlus, Instagram, Mail, MapPin, Phone, X } from 'lucide-react';
-import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath } from './catalog-types';
+import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath } from './catalog-types';
 
 export function Field({ label, value, onChange, multiline = false, readOnly = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; readOnly?: boolean }) {
   return <label className="field"><span className="field-label-row"><span>{label}</span></span>{multiline ? <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} /> : <input value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} />}</label>;
@@ -35,6 +35,36 @@ export const noopCallbacks: PageCallbacks = {
   onUpdateRow: () => undefined,
   onUpdateSample: () => undefined,
 };
+
+// الغلاف المحدث: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه حقول شفافة
+// في مواضعها المقاسة من الملف الأصلي (نِسَب من مقاس A4). لا يُعاد رسم أي
+// عنصر من التصميم، فلا يتغير فيه شيء.
+function UpdatedCoverPage({ page, cb, readOnly, clientNumber }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean; clientNumber?: number | null }) {
+  const f = (key: string) => page.fields[key] ?? "";
+  const cell = (key: string, placeholder: string) => (
+    <input
+      className="ucover-input"
+      readOnly={readOnly}
+      value={f(key)}
+      placeholder={readOnly ? "" : placeholder}
+      onChange={(e) => cb.onField(key, e.target.value)}
+    />
+  );
+  return <div className="ucover-layout">
+    <img className="ucover-art" src={updatedCoverPath} alt="" />
+    {/* الصف الأول: رقم العميل (يمينًا) ونوع المشروع */}
+    <div className="ucover-field" style={{ top: '27.35%', height: '4.10%', right: '29.40%', width: '14.43%' }}>
+      {cell('clientNumber', clientNumber ? String(clientNumber) : '')}
+    </div>
+    <div className="ucover-field" style={{ top: '27.35%', height: '4.10%', right: '63.87%', width: '26.41%' }}>{cell('projectType', 'نوع المشروع')}</div>
+    <div className="ucover-field" style={{ top: '32.99%', height: '4.11%', right: '29.52%', width: '60.76%' }}>{cell('clientName', 'اسم العميل')}</div>
+    <div className="ucover-field" style={{ top: '38.61%', height: '4.10%', right: '29.52%', width: '60.76%' }}>{cell('mobile', 'رقم الجوال')}</div>
+    <div className="ucover-field" style={{ top: '44.25%', height: '4.08%', right: '29.52%', width: '60.76%' }}>{cell('address', 'العنوان')}</div>
+    <div className="ucover-field" style={{ top: '49.99%', height: '4.02%', right: '29.52%', width: '60.76%' }}>{cell('date', 'التاريخ')}</div>
+    {/* اعتماد العميل — يسار التسمية المطبوعة */}
+    <div className="ucover-field ucover-approval" style={{ top: '76.93%', height: '3.6%', right: '31.05%', width: '37.90%' }}>{cell('approval', '')}</div>
+  </div>;
+}
 
 function CoverPage({ page, settings, cb, readOnly, clientNumber }: { page: CatalogPage; settings: Record<string, string | boolean>; cb: PageCallbacks; readOnly: boolean; clientNumber?: number | null }) {
   const show = (key: string) => isFieldVisible(page, key);
@@ -151,6 +181,7 @@ export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnl
   return <article className={`catalog-page page-${page.kind}`} style={{ '--primary': String(settings.primary), '--secondary': String(settings.secondary) } as React.CSSProperties}>
     <div className="page-ornament top" />{Boolean(settings.watermark) && <div className="page-watermark">{String(settings.companyEn)}</div>}<div className="page-brand"><img src={imageSrc(String(settings.logo || logoPath))} alt="شعار الشركة" /><span>{String(settings.companyEn)}</span></div>
     {page.kind === 'cover' && <CoverPage page={page} settings={settings} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
+    {page.kind === 'coverUpdated' && <UpdatedCoverPage page={page} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'drawing' && <DrawingPage page={page} cb={cb} readOnly={readOnly} />}

@@ -63,7 +63,7 @@ function compressImage(file: File, maxDimension = 1200, quality = 0.75): Promise
 }
 
 function Thumb({ page }: { page: CatalogPage }) {
-  return <div className="thumb-content"><span>{page.kind === 'cover' ? 'OMERA' : page.kind === 'technical' || page.kind === 'drawing' ? '⌗' : page.kind === 'materials' ? '●  ●  ●' : page.kind === 'plan' ? '⌘' : '◇'}</span><i>{page.kind === 'cover' ? 'كتالوج الأثاث' : page.title}</i><b /><b /><b /></div>;
+  return <div className="thumb-content"><span>{page.kind === 'cover' || page.kind === 'coverUpdated' ? 'OMERA' : page.kind === 'technical' || page.kind === 'drawing' ? '⌗' : page.kind === 'materials' ? '●  ●  ●' : page.kind === 'plan' ? '⌘' : '◇'}</span><i>{page.kind === 'cover' ? 'كتالوج الأثاث' : page.title}</i><b /><b /><b /></div>;
 }
 
 export default function EditorClient({ user }: { user: SessionUser }) {
@@ -239,7 +239,16 @@ export default function EditorClient({ user }: { user: SessionUser }) {
     if (index < 0) return [...list, page];
     return [...list.slice(0, index + 1), page, ...list.slice(index + 1)];
   };
-  const addPage = (kind: PageKind) => { const page = makePage(kind); commit(current => ({ pages: insertAfterSelected(current.pages, page) })); setSelectedId(page.id); setShowTemplates(false); saveMessage(`أضيفت ${pageNames[kind]}`); };
+  // الغلاف المحدث يأخذ اسم العميل ورقمه من بيانات المشروع لحظة إضافته — وهي
+  // البيانات المُدخلة عند "إنشاء مشروع" — ويظلّان قابلين للتعديل بعد ذلك.
+  const seedPageFields = (page: CatalogPage): CatalogPage => {
+    if (page.kind !== 'coverUpdated') return page;
+    const client = (pages.find(p => p.kind === 'cover')?.fields.client ?? projectName ?? '').trim();
+    return { ...page, fields: { ...page.fields,
+      clientName: client && client !== 'اسم العميل' ? client : '',
+      clientNumber: status?.clientNumber ? String(status.clientNumber) : '' } };
+  };
+  const addPage = (kind: PageKind) => { const page = seedPageFields(makePage(kind)); commit(current => ({ pages: insertAfterSelected(current.pages, page) })); setSelectedId(page.id); setShowTemplates(false); saveMessage(`أضيفت ${pageNames[kind]}`); };
   const duplicatePage = () => { const copy = { ...selected, id: uid(), title: `${selected.title} — نسخة`, fields: { ...selected.fields }, rows: selected.rows.map(row => ({ ...row, id: uid() })), samples: selected.samples.map(sample => ({ ...sample, id: uid() })) }; commit(current => ({ pages: insertAfterSelected(current.pages, copy) })); setSelectedId(copy.id); };
   const deletePage = () => { if (pages.length <= 1) { saveMessage('يجب أن يحتوي المشروع على صفحة واحدة على الأقل'); return; } if (!window.confirm('هل تريد حذف هذه الصفحة؟')) return; const index = pages.findIndex(page => page.id === selected.id); commit(current => ({ pages: current.pages.filter(page => page.id !== selected.id) })); setSelectedId(pages[Math.max(0, index - 1)]?.id ?? ''); };
   const toggleHidden = (id: string) => commit(current => ({ pages: current.pages.map(page => page.id === id ? { ...page, hidden: !page.hidden } : page) }));
@@ -526,9 +535,9 @@ function SettingsModal({ settings, onChange, onClose, onExport, onImport, upload
 }
 
 function TemplateModal({ onPick, onClose }: { onPick: (kind: PageKind) => void; onClose: () => void }) {
-  const kinds: PageKind[] = ['cover', 'product', 'drawing', 'technical', 'materials', 'plan', 'free'];
-  const icons: Record<PageKind, string> = { cover: '⌂', product: '◇', technical: '⌗', drawing: '▣', materials: '●', plan: '⌘', free: '✎' };
-  return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal template-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">إضافة صفحة</span><h2>اختر نوع الصفحة</h2></div><button onClick={onClose}><X size={19} /></button></div><div className="template-grid">{kinds.map(kind => <button key={kind} className="template-card" onClick={() => onPick(kind)}><div className="template-card-icon">{icons[kind]}</div><strong>{pageNames[kind]}</strong><small>{kind === 'cover' ? 'غلاف الكتالوج والمقدمة' : kind === 'product' ? 'مواصفات قطعة أثاث كاملة' : kind === 'drawing' ? 'الرسم يملأ الصفحة كاملة' : kind === 'technical' ? 'رسم فني ومقاسات (التصميم السابق)' : kind === 'materials' ? 'عينات الأقمشة والخامات' : kind === 'plan' ? 'مخطط توزيع الأثاث' : 'صفحة حرة بمحتوى مخصص'}</small></button>)}</div></div></div>;
+  const kinds: PageKind[] = ['coverUpdated', 'cover', 'product', 'drawing', 'technical', 'materials', 'plan', 'free'];
+  const icons: Record<PageKind, string> = { cover: '⌂', coverUpdated: '▦', product: '◇', technical: '⌗', drawing: '▣', materials: '●', plan: '⌘', free: '✎' };
+  return <div className="modal-backdrop no-print" onClick={onClose}><div className="modal template-modal" onClick={e => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">إضافة صفحة</span><h2>اختر نوع الصفحة</h2></div><button onClick={onClose}><X size={19} /></button></div><div className="template-grid">{kinds.map(kind => <button key={kind} className="template-card" onClick={() => onPick(kind)}><div className="template-card-icon">{icons[kind]}</div><strong>{pageNames[kind]}</strong><small>{kind === 'coverUpdated' ? 'التصميم الجديد مع حقول البيانات' : kind === 'cover' ? 'غلاف الكتالوج والمقدمة (التصميم السابق)' : kind === 'product' ? 'مواصفات قطعة أثاث كاملة' : kind === 'drawing' ? 'الرسم يملأ الصفحة كاملة' : kind === 'technical' ? 'رسم فني ومقاسات (التصميم السابق)' : kind === 'materials' ? 'عينات الأقمشة والخامات' : kind === 'plan' ? 'مخطط توزيع الأثاث' : 'صفحة حرة بمحتوى مخصص'}</small></button>)}</div></div></div>;
 }
 
 function ProjectsModal({ currentId, onClose, onOpen }: { currentId: string; onClose: () => void; onOpen: (id: string) => void }) {
@@ -587,6 +596,6 @@ function PageInspector({ page, updateField, updatePage, uploadImage, addRow, del
       <Field label="ملاحظات" value={sample.notes} onChange={value => updateSample(sample.id, 'notes', value)} multiline />
     </div>)}
   </div>;
-  const fieldLabels: Record<PageKind, Array<[string, string]>> = { drawing: [['drawingTitle', 'عنوان الرسم']], technical: [['drawingTitle', 'عنوان الرسم'], ['description', 'الوصف الفني'], ['scale', 'مقياس الرسم'], ['board', 'رقم اللوحة'], ['notes', 'ملاحظات']], plan: [['room', 'عنوان الفراغ'], ['description', 'وصف المخطط'], ['legend', 'مفتاح الألوان والخامات'], ['notes', 'ملاحظات المقاسات']], free: [['heading', 'العنوان'], ['body', 'النص'], ['notes', 'الملاحظات']], cover: [], product: [], materials: [] };
+  const fieldLabels: Record<PageKind, Array<[string, string]>> = { coverUpdated: [['clientNumber', 'رقم العميل'], ['projectType', 'نوع المشروع'], ['clientName', 'اسم العميل'], ['mobile', 'رقم الجوال'], ['address', 'العنوان'], ['date', 'التاريخ'], ['approval', 'اعتماد العميل']], drawing: [['drawingTitle', 'عنوان الرسم']], technical: [['drawingTitle', 'عنوان الرسم'], ['description', 'الوصف الفني'], ['scale', 'مقياس الرسم'], ['board', 'رقم اللوحة'], ['notes', 'ملاحظات']], plan: [['room', 'عنوان الفراغ'], ['description', 'وصف المخطط'], ['legend', 'مفتاح الألوان والخامات'], ['notes', 'ملاحظات المقاسات']], free: [['heading', 'العنوان'], ['body', 'النص'], ['notes', 'الملاحظات']], cover: [], product: [], materials: [] };
   return <div className="inspector-fields">{fieldLabels[page.kind].map(([key, label]) => editableField(key, label, ['description', 'notes', 'body', 'legend'].includes(key)))}{pageImageEditor('صورة الصفحة')}</div>;
 }
