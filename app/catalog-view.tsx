@@ -1,6 +1,6 @@
 import { ChangeEvent, useRef } from 'react';
 import { Globe2, ImagePlus, Instagram, Mail, MapPin, Phone, X } from 'lucide-react';
-import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath, updatedMaterialsPath, updatedProductCardPath } from './catalog-types';
+import { CatalogPage, MaterialSample, ProductRow, imageSrc, isFieldVisible, logoPath, updatedCoverPath, updatedMaterialsPath, updatedPlanPath, updatedProductCardPath } from './catalog-types';
 
 export function Field({ label, value, onChange, multiline = false, readOnly = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean; readOnly?: boolean }) {
   return <label className="field"><span className="field-label-row"><span>{label}</span></span>{multiline ? <textarea value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} /> : <input value={value} readOnly={readOnly} onChange={e => onChange(e.target.value)} />}</label>;
@@ -52,6 +52,18 @@ const MATERIAL_BLOCKS = [
 ] as const;
 const MAT_IMAGE_X = { right: '46.75%', width: '50.02%' };
 const MAT_FIELD_X = { right: '11.71%', width: '33.81%' };
+
+// صفحة المخطط المحدثة: تصميم العميل نفسه صورةً بدقة الطباعة، وفوقه إطار
+// واحد يرفع فيه المخطط — بمقاسه المقيس من الملف الأصلي.
+function UpdatedPlanPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
+  return <div className="uplan-layout">
+    <img className="uplan-art" src={updatedPlanPath} alt="" />
+    <div className="uplan-image" style={{ top: '8.70%', height: '80.89%', right: '1.94%', width: '96.12%' }}>
+      <ImagePlaceholder image={page.image} label="اضغط لرفع الرسم أو المخطط" readOnly={readOnly}
+        onUpload={file => cb.onUpload(file, 'page')} onRemove={() => cb.onRemoveImage('page')} />
+    </div>
+  </div>;
+}
 
 function UpdatedMaterialsPage({ page, cb, readOnly }: { page: CatalogPage; cb: PageCallbacks; readOnly: boolean }) {
   const samples = page.samples.slice(0, MATERIAL_BLOCKS.length);
@@ -252,6 +264,7 @@ export function CatalogPageView({ page, pageNumber, settings, callbacks, readOnl
     {page.kind === 'coverUpdated' && <UpdatedCoverPage page={page} cb={cb} readOnly={readOnly} clientNumber={clientNumber} />}
     {page.kind === 'productUpdated' && <UpdatedProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'materialsUpdated' && <UpdatedMaterialsPage page={page} cb={cb} readOnly={readOnly} />}
+    {page.kind === 'planUpdated' && <UpdatedPlanPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'product' && <ProductPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'technical' && <TechnicalPage page={page} cb={cb} readOnly={readOnly} />}
     {page.kind === 'drawing' && <DrawingPage page={page} cb={cb} readOnly={readOnly} />}

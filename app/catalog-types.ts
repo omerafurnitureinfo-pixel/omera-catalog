@@ -1,4 +1,4 @@
-export type PageKind = 'cover' | 'coverUpdated' | 'product' | 'productUpdated' | 'technical' | 'drawing' | 'materials' | 'materialsUpdated' | 'plan' | 'free';
+export type PageKind = 'cover' | 'coverUpdated' | 'product' | 'productUpdated' | 'technical' | 'drawing' | 'materials' | 'materialsUpdated' | 'plan' | 'planUpdated' | 'free';
 export type MaterialSample = { id: string; name: string; supplier: string; code: string; color: string; use: string; quantity: string; notes: string; image?: string; swatch: string };
 export type ProductRow = { id: string; label: string; value: string; visible: boolean; image?: string };
 export type CatalogPage = { id: string; kind: PageKind; title: string; hidden: boolean; image?: string; hiddenFields?: string[]; fields: Record<string, string>; rows: ProductRow[]; samples: MaterialSample[] };
@@ -14,7 +14,9 @@ export const updatedCoverPath = '/assets/images/cover-updated.png';
 export const updatedProductCardPath = '/assets/images/product-card-updated.png';
 // تصميم ملف الخامات المسلَّم (Illustrator → A4 بدقة 300DPI)، يُعرض كما هو.
 export const updatedMaterialsPath = '/assets/images/materials-file-updated.png';
-export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', coverUpdated: 'غلاف محدث', product: 'مواصفات منتج', productUpdated: 'بطاقة المنتج محدثة', technical: 'رسم فني', drawing: 'رسم فني ملء الصفحة', materials: 'خامات وأقمشة', materialsUpdated: 'ملف خامات محدث', plan: 'مخطط توزيع', free: 'صفحة حرة' };
+// تصميم صفحة المخطط المسلَّم (Illustrator → A4 بدقة 300DPI)، يُعرض كما هو.
+export const updatedPlanPath = '/assets/images/plan-updated.png';
+export const pageNames: Record<PageKind, string> = { cover: 'غلاف ومقدمة', coverUpdated: 'غلاف محدث', product: 'مواصفات منتج', productUpdated: 'بطاقة المنتج محدثة', technical: 'رسم فني', drawing: 'رسم فني ملء الصفحة', materials: 'خامات وأقمشة', materialsUpdated: 'ملف خامات محدث', plan: 'مخطط توزيع', planUpdated: 'صفحة المخطط محدثة', free: 'صفحة حرة' };
 export const swatches = ['#202829', '#8c6f4c', '#c9b18a', '#e1d9ca', '#66736b', '#a85748'];
 
 export const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44,6 +46,7 @@ export function makePage(kind: PageKind): CatalogPage {
   if (kind === 'product') return { ...common, title: 'مواصفات | قطعة أثاث', fields: { section: 'مجلس الرجال', product: 'اسم قطعة الأثاث', description: 'وصف مختصر للقطعة وتفاصيل استخدامها', quantity: '1', catalog: 'CAT-001', supplier: 'اسم المورد', finish: 'التشطيب أو الدهان', notes: 'تُراجع الأبعاد والعينة قبل الاعتماد.' }, rows: productRows() };
   if (kind === 'technical') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد', description: 'وصف فني للمخطط أو تفاصيل التصنيع.', scale: 'مقياس 1:20', board: 'A-001', notes: 'جميع الأبعاد بالسنتيمتر ما لم يذكر خلاف ذلك.' } };
   if (kind === 'drawing') return { ...common, title: 'الرسم الفني', fields: { drawingTitle: 'الرسم الفني والأبعاد' } };
+  if (kind === 'planUpdated') return { ...common, title: 'الرسم الفني والأبعاد' };
   if (kind === 'materialsUpdated') return { ...common, title: 'ملف الخامات', samples: [blankSample(), blankSample(), blankSample()].map(sample => ({ ...sample, name: '' })) };
   if (kind === 'materials') return { ...common, title: 'الخامات والأقمشة', fields: { section: 'لوحة الخامات والألوان', description: 'عينات مختارة للمشروع مع أكوادها ومعلومات المورد.' }, samples: [blankSample(), { ...blankSample(), name: 'قماش أساسي', code: 'FAB-024', color: 'رمادي دافئ', use: 'المقاعد', swatch: swatches[0] }] };
   if (kind === 'plan') return { ...common, title: 'مخطط توزيع الأثاث', fields: { room: 'غرفة المعيشة', description: 'مخطط توزيع مبدئي يوضح مواقع الأثاث ومسارات الحركة.', legend: 'الرمز الداكن: قطع رئيسية  |  الرمز الفاتح: قطع مساندة', notes: 'يراجع المخطط مع المقاسات النهائية للموقع.' } };

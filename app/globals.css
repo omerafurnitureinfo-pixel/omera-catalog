@@ -424,3 +424,33 @@
   .mfile-image .image-placeholder:not(.has-image) small,
   .mfile-image .image-placeholder:not(.has-image) svg{display:none!important}
 }
+
+/* ============ صفحة المخطط المحدثة ============
+   التصميم يُعرض كما هو، وفوقه إطار واحد للمخطط. الصورة تظهر كاملة بلا قص
+   حتى لا تُقطع أبعاد مكتوبة على حوافها. */
+.uplan-layout{position:absolute;inset:0;z-index:2}
+.uplan-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none}
+.uplan-image{position:absolute}
+.uplan-image .image-placeholder{height:100%;background:transparent;border:0}
+.uplan-image .image-placeholder:not(.has-image) strong,
+.uplan-image .image-placeholder:not(.has-image) small,
+.uplan-image .image-placeholder:not(.has-image) svg{opacity:0;transition:opacity .15s}
+.uplan-image .image-placeholder:not(.has-image):hover{background:rgba(236,173,89,.07)}
+.uplan-image .image-placeholder:not(.has-image):hover strong,
+.uplan-image .image-placeholder:not(.has-image):hover svg{opacity:1}
+.uplan-image .image-placeholder img{object-fit:contain}
+
+.catalog-page.page-planUpdated{padding:0}
+.catalog-page.page-planUpdated:before,
+.catalog-page.page-planUpdated:after{display:none}
+.catalog-page.page-planUpdated .page-ornament,
+.catalog-page.page-planUpdated .page-brand,
+.catalog-page.page-planUpdated .page-footer-line,
+.catalog-page.page-planUpdated .page-watermark{display:none}
+
+@media print{
+  .uplan-image .image-placeholder{border:0!important;background:transparent!important}
+  .uplan-image .image-placeholder:not(.has-image) strong,
+  .uplan-image .image-placeholder:not(.has-image) small,
+  .uplan-image .image-placeholder:not(.has-image) svg{display:none!important}
+}
